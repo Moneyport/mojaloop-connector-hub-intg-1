@@ -1,0 +1,3390 @@
+{
+	"info": {
+		"_postman_id": "ac11abe7-09c5-4a2e-90eb-6bd000713b8d",
+		"name": "Mojaloop-Connector",
+		"description": "Test scripts for Mojaloop Connector",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Initial_User_Setup",
+			"item": [
+				{
+					"name": "Add {{payeefspMSISDN}} to payeefsp",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "aa912d5a-10e9-444a-970c-c005e307b713",
+								"exec": [
+									"pm.environment.set('fullName', 'SimFirst SimLast');",
+									"pm.environment.set('firstName', 'SimFirst');",
+									"pm.environment.set('middleName', 'SimMiddle');",
+									"pm.environment.set('lastName', 'SimLast');",
+									"pm.environment.set('dob', '2010-10-10');"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"id": "04a7ae97-9c85-439d-806d-cc44575537b2",
+								"exec": [
+									"pm.test(\"Successful POST request\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([204,200, 500]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"displayName\": \"{{fullName}}\",\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{lastName}}\",\n    \"dateOfBirth\": \"{{dob}}\",\n    \"idType\": \"MSISDN\",\n    \"idValue\": \"{{payeefspMSISDN}}\"\n}"
+						},
+						"url": {
+							"raw": "{{PAYEEFSP_BACKEND_TESTAPI_URL}}/repository/parties",
+							"host": [
+								"{{PAYEEFSP_BACKEND_TESTAPI_URL}}"
+							],
+							"path": [
+								"repository",
+								"parties"
+							]
+						},
+						"description": "Create a party in payeefsp. So that GET /parties can be successful."
+					},
+					"response": [
+						{
+							"name": "The party was created",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"displayName\": \"<string>\",\n    \"firstName\": \"<string>\",\n    \"middleName\": \"<string>\",\n    \"lastName\": \"<string>\",\n    \"dateOfBirth\": \"<string>\",\n    \"merchantClassificationCode\": \"<string>\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/repository/parties",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"repository",
+										"parties"
+									]
+								}
+							},
+							"status": "No Content",
+							"code": 204,
+							"_postman_previewlanguage": "Text",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "text/plain"
+								}
+							],
+							"cookie": [],
+							"body": ""
+						},
+						{
+							"name": "An error occured processing the request",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"displayName\": \"<string>\",\n    \"firstName\": \"<string>\",\n    \"middleName\": \"<string>\",\n    \"lastName\": \"<string>\",\n    \"dateOfBirth\": \"<string>\",\n    \"merchantClassificationCode\": \"<string>\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/repository/parties",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"repository",
+										"parties"
+									]
+								}
+							},
+							"status": "Internal Server Error",
+							"code": 500,
+							"_postman_previewlanguage": "Text",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "text/plain"
+								}
+							],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Inbound",
+			"item": [],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Outbound",
+			"item": [
+				{
+					"name": "p2p transfers",
+					"item": [
+						{
+							"name": "payerfsp-to-payeefsp-MSISDN",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "c2c608b5-051f-42e8-959c-550701cbdb05",
+										"exec": [
+											"var uuid = require('uuid');",
+											"var generatedUUID = uuid.v4();",
+											"pm.environment.set('quoteId', generatedUUID);",
+											"pm.environment.set('transfer_ID', pm.environment.get('transactionId'));",
+											"",
+											"",
+											"pm.variables.set('transferDate', (new Date()).toUTCString());",
+											"",
+											"pm.environment.set(\"transferExpiration\",new Date(new Date().getTime() + 600000))",
+											"",
+											"pm.variables.set('payerName', 'PayerFirst PayerLast');",
+											"pm.variables.set('payerMSISDN', '918381008987');",
+											"",
+											"pm.variables.set('expectedPayeeFirstName', 'GoldenFirst');",
+											"pm.variables.set('expectedPayeeLastName', 'GoldenLast');",
+											"pm.variables.set('expectedPayeeDOB', '2010-10-10');",
+											"",
+											"",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"id": "5ec089f0-63bb-4200-807a-90ab47a1a7f2",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(`Payer name is ${pm.variables.get('payerName')}`, function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.from.displayName).to.eql(pm.variables.get('payerName'));",
+											"});",
+											"pm.test(\"payer idType is MSISDN\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.from.idType).to.eql(\"MSISDN\");",
+											"});",
+											"pm.test(\"payer idValue is 44123456789\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.from.idValue).to.eql(pm.variables.get('payerMSISDN'));",
+											"});",
+											"",
+											"pm.test(\"Payee idType is MSISDN\", function () {",
+											"    var jsonData = pm.response.json();",
+											"     pm.expect(jsonData.scenario1.result.to.idType).to.eql(\"MSISDN\");",
+											"});",
+											"",
+											"pm.test(`Payee idValue is ${pm.variables.get('goldenpayeefspReceiverMSISDN')}`, function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.to.idValue).to.eql(pm.variables.get('goldenpayeefspReceiverMSISDN'));",
+											"});",
+											"",
+											"pm.test(\"payee fspId is goldenpayeefsp\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.to.fspId).to.eql(\"goldenpayeefsp\");",
+											"});",
+											"",
+											"pm.test(\"payee First name is GoldenFirst\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.to.firstName).to.eql(\"GoldenFirst\");",
+											"});   ",
+											"",
+											"pm.test(\"payee Last name is GoldenLast\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.to.lastName).to.eql(\"GoldenLast\");",
+											"});",
+											"",
+											"pm.test(\"payee DOB is 2010-10-10\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.to.dateOfBirth).to.eql(\"2010-10-10\");",
+											"});",
+											"",
+											"pm.test(\"amount type is SEND\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.amountType).to.eql(\"SEND\");",
+											"});",
+											"",
+											"pm.test(`Currency is ${pm.environment.get('currency')}`, function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.currency).to.eql(pm.environment.get('currency'));",
+											"});",
+											"",
+											"pm.test(\"Transfer Amount is 10\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.amount).to.eql(\"10\");",
+											"});",
+											"",
+											"pm.test(\"Transaction type is Transfer\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.transactionType).to.eql(\"TRANSFER\");",
+											"});",
+											"   ",
+											"   pm.test(\"Initiator type is CONSUMER\", function () {",
+											"    var jsonData = pm.response.json(); ",
+											"    pm.expect(jsonData.scenario1.result.initiatorType).to.eql(\"CONSUMER\");",
+											" });  ",
+											" ",
+											" pm.test(\"Note is TESTPAYMENT\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.note).to.eql(\"test payment\");",
+											"});",
+											"",
+											"// pm.test(`quote Id is ${pm.environment.get('quoteId')} `, function () {",
+											"//     var jsonData = pm.response.json();",
+											"    ",
+											"//     pm.expect(jsonData.scenario1.result.quoteResponse.quoteId).to.eql(pm.environment.get('quoteId'));",
+											"// });",
+											"",
+											"pm.test(\"transferId is ${pm.environment.get('transferId')\", function () {",
+											"    var jsonData = pm.response.json();",
+											"     pm.expect(jsonData.scenario1.result.transferId).to.eql(jsonData.scenario2.result.transferId);",
+											"});",
+											"",
+											"pm.test(\"Home transaction Id is 123ABC\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.homeTransactionId).to.eql(\"123ABC\");",
+											"});",
+											"    ",
+											"pm.test(\"Current state on quote is WAITING FOR QUOTE ACCEPTANCE\", function () {",
+											"    var jsonData = pm.response.json();",
+											"  pm.expect(jsonData.scenario1.result.currentState).to.eql(\"WAITING_FOR_QUOTE_ACCEPTANCE\");",
+											"});",
+											"",
+											"pm.test(\"Transfer amount is ${pm.environment.get('amount')\", function () {",
+											"    var jsonData = pm.response.json();  ",
+											"  pm.expect(jsonData.scenario1.result.quoteResponse.transferAmount.amount).to.eql(\"10\");",
+											"});",
+											"",
+											"pm.test(\"Currency is ${pm.environment.get('currency')\", function () {",
+											"    var jsonData = pm.response.json();  ",
+											"  pm.expect(jsonData.scenario1.result.quoteResponse.transferAmount.currency).to.eql(pm.environment.get('currency'));",
+											"});",
+											"  ",
+											"pm.test(\"Quote response expiration is not null\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario1.result.quoteResponse.expiration).not.eql(null);",
+											"});",
+											"",
+											"pm.test(\"Qupte request ILP packet is not null\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario1.result.quoteResponse.ilpPacket).not.eql(null);",
+											"});",
+											"",
+											"pm.test(\"Quote response condition is not null\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario1.result.quoteResponse.condition).not.eql(null);",
+											"});",
+											"  ",
+											"pm.test(\"Payeefsp Fee amount is 0\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario1.result.quoteResponse.payeeFspFee.amount).to.eql('0');",
+											"});",
+											"",
+											"pm.test(\"PayeeFSP fee currency is \", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario1.result.quoteResponse.payeeFspFee.currency).to.eql(pm.environment.get('currency'));",
+											"});",
+											"",
+											"pm.test(\" Payeefsp Commission amount is 0\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario1.result.quoteResponse.payeeFspCommission.amount).to.eql(\"0\");",
+											"});",
+											"",
+											"pm.test(`Currency is ${pm.environment.get('currency')}`, function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario1.result.quoteResponse.payeeFspCommission.currency).to.eql(pm.environment.get('currency'));",
+											"});",
+											"  ",
+											"// Scenario 2 tests",
+											"",
+											"pm.test(\"payer fsp nameis:${pm.environment.get('payerName')\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.from.displayName).to.eql(pm.variables.get('payerName'));",
+											"});",
+											" ",
+											"pm.test(\"IdType is MSISDN\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.from.idType).to.eql(\"MSISDN\");",
+											"});",
+											"   ",
+											"pm.test(`Payer MSISDN is ${pm.environment.get('payerMSISDN')} `, function () {",
+											"var jsonData = pm.response.json(); ",
+											"pm.expect(jsonData.scenario2.result.from.idValue).to.eql(pm.variables.get('payerMSISDN'));",
+											"});",
+											"",
+											"pm.test(\"IdType is MSISDN\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.to.idType).to.eql(\"MSISDN\");",
+											"});",
+											"",
+											"pm.test(`goldenpayeefspReceiverMSISDN Value is ${pm.environment.get('goldenpayeefspReceiverMSISDN')}`, function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.to.idValue).to.eql(pm.variables.get('goldenpayeefspReceiverMSISDN'));",
+											"});",
+											"",
+											"pm.test(\"fspId is goldenpayeefsp\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.to.fspId).to.eql(\"goldenpayeefsp\");",
+											"});",
+											"",
+											"pm.test(\"First name of the party is GoldenFirst\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.to.firstName).to.eql(\"GoldenFirst\");",
+											"});",
+											"",
+											"pm.test(\"First name of the party is GoldenLast \", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.to.lastName).to.eql(\"GoldenLast\");",
+											"});",
+											"",
+											"pm.test(\"Date of Birth of the MSISDN is 2010-10-10 \", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.to.dateOfBirth).to.eql(\"2010-10-10\");",
+											"});",
+											"",
+											"pm.test(\"Amount-Type in Quote request is SEND\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.amountType).to.eql(\"SEND\");",
+											"})",
+											"",
+											"pm.test(` Currency in quotes is ${pm.environment.get('currency')}`, function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.currency).to.eql(pm.environment.get('currency'));",
+											"});",
+											"    ",
+											"pm.test(\" Transfer amount is 10\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.amount).to.eql(\"10\");",
+											"});",
+											"   ",
+											"pm.test(\" Transaction Type is TRANSFER\", function () {",
+											"var jsonData = pm.response.json(); ",
+											"pm.expect(jsonData.scenario2.result.transactionType).to.eql(\"TRANSFER\");",
+											"});",
+											"   ",
+											"pm.test(\"Initiator type is CONSUMER\", function () {",
+											"var jsonData = pm.response.json(); ",
+											"pm.expect(jsonData.scenario2.result.initiatorType).to.eql(\"CONSUMER\");",
+											"});",
+											"   ",
+											"pm.test(\"note is test payment\", function () {",
+											"var jsonData = pm.response.json(); ",
+											"pm.expect(jsonData.scenario2.result.note).to.eql(\"test payment\");",
+											"});",
+											"   ",
+											"pm.test(\"HomeTransactionId is 123ABC\", function () {",
+											"var jsonData = pm.response.json(); ",
+											"pm.expect(jsonData.scenario2.result.homeTransactionId).to.eql(\"123ABC\");",
+											"});",
+											"    ",
+											"pm.test(\"Current state of the transacfer is COMPLETED\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.currentState).to.eql(\"COMPLETED\");",
+											"});",
+											"  ",
+											"pm.test(\"Transfer Amount is 10\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.quoteResponse.transferAmount.amount).to.eql(\"10\");",
+											"});",
+											"",
+											"pm.test(\"Response validation\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.quoteResponse.transferAmount.currency).to.eql(pm.environment.get('currency'));",
+											"});",
+											"",
+											"pm.test(\"Quote Expiration is not Null\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.quoteResponse.expiration).not.eql(null);",
+											"});",
+											"",
+											"pm.test(\"Response ilpPacket is not null\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.quoteResponse.ilpPacket).not.eql(null);",
+											"});",
+											"",
+											"pm.test(\"Response condition is not null\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.quoteResponse.condition).not.eql(null);",
+											"});",
+											"",
+											"pm.test(\"PayeeFspFee is 0\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.quoteResponse.payeeFspFee.amount).to.eql(\"0\");",
+											"});",
+											"",
+											"pm.test(`Payeefsp fee currency is ${pm.environment.get('currency')}` , function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.quoteResponse.payeeFspFee.currency).to.eql(pm.environment.get('currency'));",
+											"});",
+											"",
+											"pm.test(\"Payeefsp commission is 0\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.quoteResponse.payeeFspCommission.amount).to.eql(\"0\");",
+											"});",
+											"",
+											"pm.test(` Transfer currency is ${pm.environment.get('currency')}`, function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.quoteResponse.payeeFspCommission.currency).to.eql(pm.environment.get('currency'));",
+											"});",
+											"",
+											"pm.test(\"CompletedTimestamp is not empty\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.fulfil.completedTimestamp).not.eql(null);",
+											"});",
+											"",
+											"pm.test(\" transferState is COMMITTED\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.fulfil.transferState).to.eql(\"COMMITTED\");",
+											"});",
+											"",
+											"pm.test(\" Fulfilment is not empty\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.fulfil.fulfilment).not.eql(null);",
+											"",
+											"});",
+											"  ",
+											"  //Check Headers for parties endpoint on payee side",
+											"  setTimeout(function () {",
+											"  pm.sendRequest(pm.environment.get(\"GOLDENPAYEEFSP_SDK_INBOUND_URL\")+\"/requests/\"+pm.variables.get(\"goldenpayeefspReceiverMSISDN\"), function (err, response) {",
+											"       ",
+											"      if(response.responseSize !== 0) { ",
+											"      //Checking headers",
+											"        var headers = response.json().headers;",
+											"        pm.test(\"On goldenpayeefsp fspiop-source is goldenpayerfsp\", function () {",
+											"            pm.expect(headers['fspiop-source']).to.eql('goldenpayerfsp');",
+											"        });",
+											"        ",
+											"        // pm.test(\"goldenpayeefsp fspiop-destination is goldenpayeefsp\", function () {",
+											"        //     pm.expect(headers['fspiop-destination']).to.eql('goldenpayeefsp');",
+											"        // });",
+											"        ",
+											"        pm.test(\"On goldenpayeefsp content-type should be application/vnd.interoperability.parties+json;version=1.0\", function () {",
+											"            pm.expect(headers['content-type']).to.eql('application/vnd.interoperability.parties+json;version=1.0');",
+											"        });",
+											"        ",
+											"        pm.test(\"On goldenpayeefsp accept should be application/vnd.interoperability.parties+json;version=1.0\", function () {",
+											"            pm.expect(headers['accept']).to.eql('application/vnd.interoperability.parties+json;version=1.0');",
+											"        });",
+											"        ",
+											"        pm.test(\"On goldenpayeefsp date cannot be null\", function () {",
+											"            pm.expect(headers['date']).to.not.eql(undefined);",
+											"        });",
+											"        ",
+											"      } else {",
+											"          pm.test(\"Parties FAILED - payeeFSP\", function () {",
+											"            throw new Error('Did not receive response');",
+											"          });",
+											"           ",
+											"      }",
+											"      ",
+											"    });",
+											"}, 100)",
+											"",
+											"//Check Headers and data for parties endpoint on payer side",
+											"setTimeout(function () {",
+											"  pm.sendRequest(pm.environment.get(\"GOLDENPAYERFSP_SDK_INBOUND_URL\")+\"/callbacks/\"+pm.variables.get(\"goldenpayeefspReceiverMSISDN\"), function (err, response) {",
+											"       ",
+											"      if(response.responseSize !== 0) { ",
+											"      //Checking headers",
+											"        var headers = response.json().headers;",
+											"        pm.test(\"On payerfsp fspiop-source is goldenpayeefsp\", function () {",
+											"            pm.expect(headers['fspiop-source']).to.eql('goldenpayeefsp');",
+											"        });",
+											"        ",
+											"        pm.test(\"On payerfsp fspiop-destination is goldenpayerfsp\", function () {",
+											"            pm.expect(headers['fspiop-destination']).to.eql('goldenpayerfsp');",
+											"        });",
+											"        ",
+											"        pm.test(\"On payerfsp content-type should be application/vnd.interoperability.parties+json;version=1.0\", function () {",
+											"            pm.expect(headers['content-type']).to.eql('application/vnd.interoperability.parties+json;version=1.0');",
+											"        });",
+											"        ",
+											"        pm.test(\"payerfsp accept is empty\", function () {",
+											"            pm.expect(headers['accept']).to.eql(undefined);",
+											"        });",
+											"        ",
+											"        //Validate protected header inside Signature",
+											"        var {signature,protectedHeader} = JSON.parse(headers['fspiop-signature'])",
+											"        var decodedProtectedHeaders = JSON.parse(atob(protectedHeader))",
+											"        console.log('decodedProtectedHeaders:',decodedProtectedHeaders)",
+											"        ",
+											"        // pm.test(\"FSPIOP-Signature signature is returned\", function () {",
+											"        //     pm.expect(signature).to.eql(pm.environment.get(\"payeefsp-signature\"));",
+											"        // });",
+											"        ",
+											"        pm.test(\"FSPIOP-Signature Protected Header alg to be RS256\", function () {",
+											"            pm.expect(decodedProtectedHeaders['alg']).to.eql('RS256');",
+											"        });",
+											"        pm.test(\"FSPIOP-Signature Protected Header FSPIOP-URI to be /parties/MSISDN/\"+pm.environment.get(\"goldenpayeefspReceiverMSISDN\"), function () {",
+											"            pm.expect(decodedProtectedHeaders['FSPIOP-URI']).to.eql('/parties/MSISDN/'+pm.environment.get(\"goldenpayeefspReceiverMSISDN\"));",
+											"        });",
+											"        ",
+											"",
+											"        pm.test(\"FSPIOP-Signature Protected Header FSPIOP-HTTP-Method to be PUT\", function () {",
+											"            pm.expect(decodedProtectedHeaders['FSPIOP-HTTP-Method']).to.eql('PUT');",
+											"        });",
+											"        pm.test(\"FSPIOP-Signature Protected Header FSPIOP-Source to be goldenpayeefsp\", function () {",
+											"            pm.expect(decodedProtectedHeaders['FSPIOP-Source']).to.eql('goldenpayeefsp');",
+											"        });",
+											"        pm.test(\"FSPIOP-Signature Protected Header FSPIOP-Destination to be goldenpayerfsp\", function () {",
+											"            pm.expect(decodedProtectedHeaders['FSPIOP-Destination']).to.eql('goldenpayerfsp');",
+											"        });",
+											"        pm.test(\"FSPIOP-Signature Protected Header Date is present\", function () {",
+											"            pm.expect(decodedProtectedHeaders['Date']).to.not.eql(undefined);",
+											"        });",
+											"       ",
+											"        pm.test(\"payerfsp FSPIOP-URI to be /parties/MSISDN/\"+pm.environment.get(\"goldenpayeefspReceiverMSISDN\"), function () {",
+											"            pm.expect(headers['fspiop-uri']).to.eql('/parties/MSISDN/'+pm.environment.get(\"goldenpayeefspReceiverMSISDN\"));",
+											"        });",
+											"        ",
+											"        pm.test(\"payerfsp fspiop-http-method is PUT\", function () {",
+											"            pm.expect(headers['fspiop-http-method']).to.eql('PUT');",
+											"        });",
+											"        ",
+											"      //Checking data",
+											"      var jsonData = response.json().data;",
+											"        pm.test(\"Expected partyIdType is MSISDN\", function () {",
+											"          pm.expect(jsonData.party.partyIdInfo.partyIdType).to.eql('MSISDN');",
+											"        });",
+											"        pm.test(\"Expected partyIdentifier is \"+pm.environment.get('goldenpayeefspReceiverMSISDN'), function () {",
+											"          pm.expect(jsonData.party.partyIdInfo.partyIdentifier).to.eql(pm.environment.get('goldenpayeefspReceiverMSISDN'));",
+											"        });",
+											"        pm.test(\"Expected fspId is goldenpayeefsp\", function () {",
+											"          pm.expect(jsonData.party.partyIdInfo.fspId).to.eql('goldenpayeefsp');",
+											"        });",
+											"        ",
+											"      pm.test(\"Expected receiver first name is: \"+pm.variables.get(\"expectedPayeeFirstName\"), function () {",
+											"          pm.expect(jsonData.party.personalInfo.complexName.firstName).to.eql(pm.variables.get(\"expectedPayeeFirstName\"));",
+											"        });",
+											"        pm.test(\"Expected receiver last name is: \"+pm.variables.get(\"expectedPayeeLastName\"), function () {",
+											"          pm.expect(jsonData.party.personalInfo.complexName.lastName).to.eql(pm.variables.get(\"expectedPayeeLastName\"));",
+											"        });",
+											"        pm.test(\"Expected receiver DOB: \"+pm.variables.get(\"expectedPayeeDOB\"), function () {",
+											"          pm.expect(jsonData.party.personalInfo.dateOfBirth).to.eql(pm.variables.get(\"expectedPayeeDOB\"));",
+											"        });  ",
+											"        ",
+											"      } else {",
+											"          pm.test(\"Parties FAILED - payerFSP\", function () {",
+											"            throw new Error('Did not receive response');",
+											"          });",
+											"        }",
+											"    });",
+											"}, 100)",
+											"",
+											"var transferID = pm.response.json().scenario1.result.transferId",
+											"//Check the request that Switch forwards to payeefsp",
+											"setTimeout(function () {",
+											"  pm.sendRequest(pm.environment.get(\"GOLDENPAYEEFSP_SDK_INBOUND_URL\")+\"/requests/\"+transferID, function (err, response) {",
+											"          if(response.responseSize !== 0) {",
+											"              ",
+											"              //Check the Headers",
+											"              var headers = response.json().headers;",
+											"              ",
+											"                pm.test(\"On payeefsp fspiop-source is payerfsp\", function () {",
+											"                    pm.expect(headers['fspiop-source']).to.eql('goldenpayerfsp');",
+											"                });",
+											"                ",
+											"                pm.test(\"On payeefsp fspiop-destination is payeefsp\", function () {",
+											"                    pm.expect(headers['fspiop-destination']).to.eql('goldenpayeefsp');",
+											"                });",
+											"                ",
+											"                pm.test(\"On payeefsp content-typeis same as sent in the request\", function () {",
+											"                    pm.expect(headers['content-type']).to.eql('application/vnd.interoperability.transfers+json;version=1.0');",
+											"                });",
+											"                ",
+											"                pm.test(\"On payeefsp accept is same as sent in the request\", function () {",
+											"                    pm.expect(headers['accept']).to.eql('application/vnd.interoperability.transfers+json;version=1.0');",
+											"                });",
+											"                ",
+											"                pm.test(\"On payeefsp fspiop-http-method is POST\", function () {",
+											"                    pm.expect(headers['fspiop-http-method']).to.eql('POST');",
+											"                });",
+											"                ",
+											"                pm.test(\"On payeefsp fspiop-uri is /transfers\", function () {",
+											"                    pm.expect(headers['fspiop-uri']).to.eql('/transfers');",
+											"                });",
+											"                ",
+											"                ",
+											"                //Check the data",
+											"                var jsonData = response.json().data;",
+											"                pm.test(\"On payeefsp data should have the same transferId as request\", function () {",
+											"                  pm.expect(jsonData.transferId).to.eql(transferID);",
+											"                });",
+											"                pm.test(\"On payeefsp data should have the same payerfspId as request\", function () {",
+											"                  pm.expect(jsonData.payerFsp).to.eql('goldenpayerfsp');",
+											"                });",
+											"                pm.test(\"On payeefsp data should have the same payeefspId as request\", function () {",
+											"                  pm.expect(jsonData.payeeFsp).to.eql('goldenpayeefsp');",
+											"                });",
+											"                pm.test(\"On payeefsp data should have the same amount as request\", function () {",
+											"                  pm.expect(jsonData.amount.amount).to.eql('10');",
+											"                });",
+											"                pm.test(\"payeefsp data should have the same currency as request\", function () {",
+											"                  pm.expect(jsonData.amount.currency).to.eql(pm.environment.get(\"currency\"));",
+											"                });",
+											"                // pm.test(\"payeefsp data should have the same expiration as request\", function () {",
+											"                //   pm.expect(jsonData.expiration).to.eql(pm.environment.get(\"transferExpiration\"));",
+											"                // });",
+											"                // pm.test(\"payeefsp data should have the same ilpPacket as request\", function () {",
+											"                //   pm.expect(jsonData.ilpPacket).to.eql(pm.environment.get(\"ilpPacket\"));",
+											"                // });",
+											"                // pm.test(\"payeefsp data should have the same condition as request\", function () {",
+											"                //   pm.expect(jsonData.condition).to.eql(pm.environment.get(\"condition\"));",
+											"                // });",
+											"                ",
+											"          } else {",
+											"              pm.test(\"Transfer FAILED\", function () {",
+											"                throw new Error('Did not receive response');",
+											"              });",
+											"",
+											"          }",
+											"  });",
+											"}, 100)",
+											"",
+											"//Check the callback response that Switch forwards to payerfsp",
+											"setTimeout(function () {",
+											"  pm.sendRequest(pm.environment.get(\"GOLDENPAYERFSP_SDK_INBOUND_URL\")+\"/callbacks/\"+transferID, function (err, response) {",
+											"          if(response.responseSize !== 0) {",
+											"            //Checking headers",
+											"            var headers = response.json().headers;",
+											"            pm.test(\"On payerfsp fspiop-source is payeefsp\", function () {",
+											"                pm.expect(headers['fspiop-source']).to.eql('goldenpayeefsp');",
+											"            });",
+											"            ",
+											"            pm.test(\"On payerfsp fspiop-destination is payerfsp\", function () {",
+											"                pm.expect(headers['fspiop-destination']).to.eql('goldenpayerfsp');",
+											"            });",
+											"            ",
+											"            pm.test(\"On payerfsp content-type should be application/vnd.interoperability.transfers+json;version=1.0\", function () {",
+											"                pm.expect(headers['content-type']).to.eql('application/vnd.interoperability.transfers+json;version=1.0');",
+											"            });",
+											"            ",
+											"            pm.test(\"payerfsp accept is empty\", function () {",
+											"                pm.expect(headers['accept']).to.eql(undefined);",
+											"            });",
+											"            ",
+											"            // pm.test(\"fspiop-signature is returned\", function () {",
+											"            //     pm.expect(headers['fspiop-signature']).to.eql(pm.environment.get(\"payeefsp_fspiop_signature\"));",
+											"            // });",
+											"           ",
+											"            ",
+											"            pm.test(\"payerfsp fspiop-uri includes transfers\", function () {",
+											"                pm.expect(headers['fspiop-uri']).to.include('/transfers');",
+											"            });",
+											"            ",
+											"            pm.test(\"payerfsp fspiop-http-method is PUT\", function () {",
+											"                pm.expect(headers['fspiop-http-method']).to.eql('PUT');",
+											"            });",
+											"            ",
+											"            var jsonData = response.json().data;",
+											"            pm.test(\"Response data does not have transferId\", function () {",
+											"              pm.expect(jsonData.transferId).to.eql(undefined);",
+											"            });",
+											"            pm.test(\"Response status is COMMITTED\", function () {",
+											"                pm.expect(jsonData.transferState).to.eql('COMMITTED');",
+											"            });",
+											"          } else {",
+											"              pm.test(\"Transfer FAILED\", function () {",
+											"                throw new Error('Did not receive response');",
+											"              });",
+											"",
+											"          }",
+											"  });",
+											"}, 100)",
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/vnd.interoperability.transfers+json;version=1",
+										"disabled": true
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/vnd.interoperability.transfers+json;version=1.0",
+										"disabled": true
+									},
+									{
+										"key": "Date",
+										"type": "text",
+										"value": "{{transferDate}}",
+										"disabled": true
+									},
+									{
+										"key": "FSPIOP-Source",
+										"type": "text",
+										"value": "{{payerfsp}}",
+										"disabled": true
+									},
+									{
+										"key": "FSPIOP-Destination",
+										"type": "text",
+										"value": "{{payeefsp}}",
+										"disabled": true
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"from\": {\n        \"displayName\": \"PayerFirst PayerLast\",\n        \"idType\": \"MSISDN\",\n        \"idValue\": \"{{payerfspMSISDN}}\"\n    },\n    \"to\": {\n        \"idType\": \"MSISDN\",\n        \"idValue\": \"{{payeefspMSISDN}}\"\n    },\n    \"amountType\": \"SEND\",\n    \"currency\": \"{{currency}}\",\n    \"amount\": \"10\",\n    \"transactionType\": \"TRANSFER\",\n    \"initiatorType\": \"CONSUMER\",\n    \"note\": \"test payment\",\n    \"homeTransactionId\": \"{{$guid}}\"\n}"
+								},
+								"url": {
+									"raw": "{{PAYERFSP_SDK_OUTBOUND_URL}}/transfers",
+									"host": [
+										"{{PAYERFSP_SDK_OUTBOUND_URL}}"
+									],
+									"path": [
+										"transfers"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "payerfsp-to-payeefsp-ALIAS",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"id": "c2c608b5-051f-42e8-959c-550701cbdb05",
+										"exec": [
+											"var uuid = require('uuid');",
+											"var generatedUUID = uuid.v4();",
+											"pm.environment.set('quoteId', generatedUUID);",
+											"pm.environment.set('transfer_ID', pm.environment.get('transactionId'));",
+											"",
+											"",
+											"pm.variables.set('transferDate', (new Date()).toUTCString());",
+											"",
+											"pm.environment.set(\"transferExpiration\",new Date(new Date().getTime() + 600000))",
+											"",
+											"pm.variables.set('payerName', 'PayerFirst PayerLast');",
+											"pm.variables.set('payerMSISDN', '918381008987');",
+											"",
+											"pm.variables.set('expectedPayeeFirstName', 'GoldenFirst');",
+											"pm.variables.set('expectedPayeeLastName', 'GoldenLast');",
+											"pm.variables.set('expectedPayeeDOB', '2010-10-10');",
+											"",
+											"",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"id": "5ec089f0-63bb-4200-807a-90ab47a1a7f2",
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(`Payer name is ${pm.variables.get('payerName')}`, function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.from.displayName).to.eql(pm.variables.get('payerName'));",
+											"});",
+											"pm.test(\"payer idType is MSISDN\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.from.idType).to.eql(\"MSISDN\");",
+											"});",
+											"pm.test(\"payer idValue is 44123456789\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.from.idValue).to.eql(pm.variables.get('payerMSISDN'));",
+											"});",
+											"",
+											"pm.test(\"Payee idType is MSISDN\", function () {",
+											"    var jsonData = pm.response.json();",
+											"     pm.expect(jsonData.scenario1.result.to.idType).to.eql(\"MSISDN\");",
+											"});",
+											"",
+											"pm.test(`Payee idValue is ${pm.variables.get('goldenpayeefspReceiverMSISDN')}`, function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.to.idValue).to.eql(pm.variables.get('goldenpayeefspReceiverMSISDN'));",
+											"});",
+											"",
+											"pm.test(\"payee fspId is goldenpayeefsp\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.to.fspId).to.eql(\"goldenpayeefsp\");",
+											"});",
+											"",
+											"pm.test(\"payee First name is GoldenFirst\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.to.firstName).to.eql(\"GoldenFirst\");",
+											"});   ",
+											"",
+											"pm.test(\"payee Last name is GoldenLast\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.to.lastName).to.eql(\"GoldenLast\");",
+											"});",
+											"",
+											"pm.test(\"payee DOB is 2010-10-10\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.to.dateOfBirth).to.eql(\"2010-10-10\");",
+											"});",
+											"",
+											"pm.test(\"amount type is SEND\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.amountType).to.eql(\"SEND\");",
+											"});",
+											"",
+											"pm.test(`Currency is ${pm.environment.get('currency')}`, function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.currency).to.eql(pm.environment.get('currency'));",
+											"});",
+											"",
+											"pm.test(\"Transfer Amount is 10\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.amount).to.eql(\"10\");",
+											"});",
+											"",
+											"pm.test(\"Transaction type is Transfer\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.transactionType).to.eql(\"TRANSFER\");",
+											"});",
+											"   ",
+											"   pm.test(\"Initiator type is CONSUMER\", function () {",
+											"    var jsonData = pm.response.json(); ",
+											"    pm.expect(jsonData.scenario1.result.initiatorType).to.eql(\"CONSUMER\");",
+											" });  ",
+											" ",
+											" pm.test(\"Note is TESTPAYMENT\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.note).to.eql(\"test payment\");",
+											"});",
+											"",
+											"// pm.test(`quote Id is ${pm.environment.get('quoteId')} `, function () {",
+											"//     var jsonData = pm.response.json();",
+											"    ",
+											"//     pm.expect(jsonData.scenario1.result.quoteResponse.quoteId).to.eql(pm.environment.get('quoteId'));",
+											"// });",
+											"",
+											"pm.test(\"transferId is ${pm.environment.get('transferId')\", function () {",
+											"    var jsonData = pm.response.json();",
+											"     pm.expect(jsonData.scenario1.result.transferId).to.eql(jsonData.scenario2.result.transferId);",
+											"});",
+											"",
+											"pm.test(\"Home transaction Id is 123ABC\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.scenario1.result.homeTransactionId).to.eql(\"123ABC\");",
+											"});",
+											"    ",
+											"pm.test(\"Current state on quote is WAITING FOR QUOTE ACCEPTANCE\", function () {",
+											"    var jsonData = pm.response.json();",
+											"  pm.expect(jsonData.scenario1.result.currentState).to.eql(\"WAITING_FOR_QUOTE_ACCEPTANCE\");",
+											"});",
+											"",
+											"pm.test(\"Transfer amount is ${pm.environment.get('amount')\", function () {",
+											"    var jsonData = pm.response.json();  ",
+											"  pm.expect(jsonData.scenario1.result.quoteResponse.transferAmount.amount).to.eql(\"10\");",
+											"});",
+											"",
+											"pm.test(\"Currency is ${pm.environment.get('currency')\", function () {",
+											"    var jsonData = pm.response.json();  ",
+											"  pm.expect(jsonData.scenario1.result.quoteResponse.transferAmount.currency).to.eql(pm.environment.get('currency'));",
+											"});",
+											"  ",
+											"pm.test(\"Quote response expiration is not null\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario1.result.quoteResponse.expiration).not.eql(null);",
+											"});",
+											"",
+											"pm.test(\"Qupte request ILP packet is not null\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario1.result.quoteResponse.ilpPacket).not.eql(null);",
+											"});",
+											"",
+											"pm.test(\"Quote response condition is not null\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario1.result.quoteResponse.condition).not.eql(null);",
+											"});",
+											"  ",
+											"pm.test(\"Payeefsp Fee amount is 0\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario1.result.quoteResponse.payeeFspFee.amount).to.eql('0');",
+											"});",
+											"",
+											"pm.test(\"PayeeFSP fee currency is \", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario1.result.quoteResponse.payeeFspFee.currency).to.eql(pm.environment.get('currency'));",
+											"});",
+											"",
+											"pm.test(\" Payeefsp Commission amount is 0\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario1.result.quoteResponse.payeeFspCommission.amount).to.eql(\"0\");",
+											"});",
+											"",
+											"pm.test(`Currency is ${pm.environment.get('currency')}`, function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario1.result.quoteResponse.payeeFspCommission.currency).to.eql(pm.environment.get('currency'));",
+											"});",
+											"  ",
+											"// Scenario 2 tests",
+											"",
+											"pm.test(\"payer fsp nameis:${pm.environment.get('payerName')\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.from.displayName).to.eql(pm.variables.get('payerName'));",
+											"});",
+											" ",
+											"pm.test(\"IdType is MSISDN\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.from.idType).to.eql(\"MSISDN\");",
+											"});",
+											"   ",
+											"pm.test(`Payer MSISDN is ${pm.environment.get('payerMSISDN')} `, function () {",
+											"var jsonData = pm.response.json(); ",
+											"pm.expect(jsonData.scenario2.result.from.idValue).to.eql(pm.variables.get('payerMSISDN'));",
+											"});",
+											"",
+											"pm.test(\"IdType is MSISDN\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.to.idType).to.eql(\"MSISDN\");",
+											"});",
+											"",
+											"pm.test(`goldenpayeefspReceiverMSISDN Value is ${pm.environment.get('goldenpayeefspReceiverMSISDN')}`, function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.to.idValue).to.eql(pm.variables.get('goldenpayeefspReceiverMSISDN'));",
+											"});",
+											"",
+											"pm.test(\"fspId is goldenpayeefsp\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.to.fspId).to.eql(\"goldenpayeefsp\");",
+											"});",
+											"",
+											"pm.test(\"First name of the party is GoldenFirst\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.to.firstName).to.eql(\"GoldenFirst\");",
+											"});",
+											"",
+											"pm.test(\"First name of the party is GoldenLast \", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.to.lastName).to.eql(\"GoldenLast\");",
+											"});",
+											"",
+											"pm.test(\"Date of Birth of the MSISDN is 2010-10-10 \", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.to.dateOfBirth).to.eql(\"2010-10-10\");",
+											"});",
+											"",
+											"pm.test(\"Amount-Type in Quote request is SEND\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.amountType).to.eql(\"SEND\");",
+											"})",
+											"",
+											"pm.test(` Currency in quotes is ${pm.environment.get('currency')}`, function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.currency).to.eql(pm.environment.get('currency'));",
+											"});",
+											"    ",
+											"pm.test(\" Transfer amount is 10\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.amount).to.eql(\"10\");",
+											"});",
+											"   ",
+											"pm.test(\" Transaction Type is TRANSFER\", function () {",
+											"var jsonData = pm.response.json(); ",
+											"pm.expect(jsonData.scenario2.result.transactionType).to.eql(\"TRANSFER\");",
+											"});",
+											"   ",
+											"pm.test(\"Initiator type is CONSUMER\", function () {",
+											"var jsonData = pm.response.json(); ",
+											"pm.expect(jsonData.scenario2.result.initiatorType).to.eql(\"CONSUMER\");",
+											"});",
+											"   ",
+											"pm.test(\"note is test payment\", function () {",
+											"var jsonData = pm.response.json(); ",
+											"pm.expect(jsonData.scenario2.result.note).to.eql(\"test payment\");",
+											"});",
+											"   ",
+											"pm.test(\"HomeTransactionId is 123ABC\", function () {",
+											"var jsonData = pm.response.json(); ",
+											"pm.expect(jsonData.scenario2.result.homeTransactionId).to.eql(\"123ABC\");",
+											"});",
+											"    ",
+											"pm.test(\"Current state of the transacfer is COMPLETED\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.currentState).to.eql(\"COMPLETED\");",
+											"});",
+											"  ",
+											"pm.test(\"Transfer Amount is 10\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.quoteResponse.transferAmount.amount).to.eql(\"10\");",
+											"});",
+											"",
+											"pm.test(\"Response validation\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.quoteResponse.transferAmount.currency).to.eql(pm.environment.get('currency'));",
+											"});",
+											"",
+											"pm.test(\"Quote Expiration is not Null\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.quoteResponse.expiration).not.eql(null);",
+											"});",
+											"",
+											"pm.test(\"Response ilpPacket is not null\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.quoteResponse.ilpPacket).not.eql(null);",
+											"});",
+											"",
+											"pm.test(\"Response condition is not null\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.quoteResponse.condition).not.eql(null);",
+											"});",
+											"",
+											"pm.test(\"PayeeFspFee is 0\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.quoteResponse.payeeFspFee.amount).to.eql(\"0\");",
+											"});",
+											"",
+											"pm.test(`Payeefsp fee currency is ${pm.environment.get('currency')}` , function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.quoteResponse.payeeFspFee.currency).to.eql(pm.environment.get('currency'));",
+											"});",
+											"",
+											"pm.test(\"Payeefsp commission is 0\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.quoteResponse.payeeFspCommission.amount).to.eql(\"0\");",
+											"});",
+											"",
+											"pm.test(` Transfer currency is ${pm.environment.get('currency')}`, function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.quoteResponse.payeeFspCommission.currency).to.eql(pm.environment.get('currency'));",
+											"});",
+											"",
+											"pm.test(\"CompletedTimestamp is not empty\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.fulfil.completedTimestamp).not.eql(null);",
+											"});",
+											"",
+											"pm.test(\" transferState is COMMITTED\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.fulfil.transferState).to.eql(\"COMMITTED\");",
+											"});",
+											"",
+											"pm.test(\" Fulfilment is not empty\", function () {",
+											"var jsonData = pm.response.json();",
+											"pm.expect(jsonData.scenario2.result.fulfil.fulfilment).not.eql(null);",
+											"",
+											"});",
+											"  ",
+											"  //Check Headers for parties endpoint on payee side",
+											"  setTimeout(function () {",
+											"  pm.sendRequest(pm.environment.get(\"GOLDENPAYEEFSP_SDK_INBOUND_URL\")+\"/requests/\"+pm.variables.get(\"goldenpayeefspReceiverMSISDN\"), function (err, response) {",
+											"       ",
+											"      if(response.responseSize !== 0) { ",
+											"      //Checking headers",
+											"        var headers = response.json().headers;",
+											"        pm.test(\"On goldenpayeefsp fspiop-source is goldenpayerfsp\", function () {",
+											"            pm.expect(headers['fspiop-source']).to.eql('goldenpayerfsp');",
+											"        });",
+											"        ",
+											"        // pm.test(\"goldenpayeefsp fspiop-destination is goldenpayeefsp\", function () {",
+											"        //     pm.expect(headers['fspiop-destination']).to.eql('goldenpayeefsp');",
+											"        // });",
+											"        ",
+											"        pm.test(\"On goldenpayeefsp content-type should be application/vnd.interoperability.parties+json;version=1.0\", function () {",
+											"            pm.expect(headers['content-type']).to.eql('application/vnd.interoperability.parties+json;version=1.0');",
+											"        });",
+											"        ",
+											"        pm.test(\"On goldenpayeefsp accept should be application/vnd.interoperability.parties+json;version=1.0\", function () {",
+											"            pm.expect(headers['accept']).to.eql('application/vnd.interoperability.parties+json;version=1.0');",
+											"        });",
+											"        ",
+											"        pm.test(\"On goldenpayeefsp date cannot be null\", function () {",
+											"            pm.expect(headers['date']).to.not.eql(undefined);",
+											"        });",
+											"        ",
+											"      } else {",
+											"          pm.test(\"Parties FAILED - payeeFSP\", function () {",
+											"            throw new Error('Did not receive response');",
+											"          });",
+											"           ",
+											"      }",
+											"      ",
+											"    });",
+											"}, 100)",
+											"",
+											"//Check Headers and data for parties endpoint on payer side",
+											"setTimeout(function () {",
+											"  pm.sendRequest(pm.environment.get(\"GOLDENPAYERFSP_SDK_INBOUND_URL\")+\"/callbacks/\"+pm.variables.get(\"goldenpayeefspReceiverMSISDN\"), function (err, response) {",
+											"       ",
+											"      if(response.responseSize !== 0) { ",
+											"      //Checking headers",
+											"        var headers = response.json().headers;",
+											"        pm.test(\"On payerfsp fspiop-source is goldenpayeefsp\", function () {",
+											"            pm.expect(headers['fspiop-source']).to.eql('goldenpayeefsp');",
+											"        });",
+											"        ",
+											"        pm.test(\"On payerfsp fspiop-destination is goldenpayerfsp\", function () {",
+											"            pm.expect(headers['fspiop-destination']).to.eql('goldenpayerfsp');",
+											"        });",
+											"        ",
+											"        pm.test(\"On payerfsp content-type should be application/vnd.interoperability.parties+json;version=1.0\", function () {",
+											"            pm.expect(headers['content-type']).to.eql('application/vnd.interoperability.parties+json;version=1.0');",
+											"        });",
+											"        ",
+											"        pm.test(\"payerfsp accept is empty\", function () {",
+											"            pm.expect(headers['accept']).to.eql(undefined);",
+											"        });",
+											"        ",
+											"        //Validate protected header inside Signature",
+											"        var {signature,protectedHeader} = JSON.parse(headers['fspiop-signature'])",
+											"        var decodedProtectedHeaders = JSON.parse(atob(protectedHeader))",
+											"        console.log('decodedProtectedHeaders:',decodedProtectedHeaders)",
+											"        ",
+											"        // pm.test(\"FSPIOP-Signature signature is returned\", function () {",
+											"        //     pm.expect(signature).to.eql(pm.environment.get(\"payeefsp-signature\"));",
+											"        // });",
+											"        ",
+											"        pm.test(\"FSPIOP-Signature Protected Header alg to be RS256\", function () {",
+											"            pm.expect(decodedProtectedHeaders['alg']).to.eql('RS256');",
+											"        });",
+											"        pm.test(\"FSPIOP-Signature Protected Header FSPIOP-URI to be /parties/MSISDN/\"+pm.environment.get(\"goldenpayeefspReceiverMSISDN\"), function () {",
+											"            pm.expect(decodedProtectedHeaders['FSPIOP-URI']).to.eql('/parties/MSISDN/'+pm.environment.get(\"goldenpayeefspReceiverMSISDN\"));",
+											"        });",
+											"        ",
+											"",
+											"        pm.test(\"FSPIOP-Signature Protected Header FSPIOP-HTTP-Method to be PUT\", function () {",
+											"            pm.expect(decodedProtectedHeaders['FSPIOP-HTTP-Method']).to.eql('PUT');",
+											"        });",
+											"        pm.test(\"FSPIOP-Signature Protected Header FSPIOP-Source to be goldenpayeefsp\", function () {",
+											"            pm.expect(decodedProtectedHeaders['FSPIOP-Source']).to.eql('goldenpayeefsp');",
+											"        });",
+											"        pm.test(\"FSPIOP-Signature Protected Header FSPIOP-Destination to be goldenpayerfsp\", function () {",
+											"            pm.expect(decodedProtectedHeaders['FSPIOP-Destination']).to.eql('goldenpayerfsp');",
+											"        });",
+											"        pm.test(\"FSPIOP-Signature Protected Header Date is present\", function () {",
+											"            pm.expect(decodedProtectedHeaders['Date']).to.not.eql(undefined);",
+											"        });",
+											"       ",
+											"        pm.test(\"payerfsp FSPIOP-URI to be /parties/MSISDN/\"+pm.environment.get(\"goldenpayeefspReceiverMSISDN\"), function () {",
+											"            pm.expect(headers['fspiop-uri']).to.eql('/parties/MSISDN/'+pm.environment.get(\"goldenpayeefspReceiverMSISDN\"));",
+											"        });",
+											"        ",
+											"        pm.test(\"payerfsp fspiop-http-method is PUT\", function () {",
+											"            pm.expect(headers['fspiop-http-method']).to.eql('PUT');",
+											"        });",
+											"        ",
+											"      //Checking data",
+											"      var jsonData = response.json().data;",
+											"        pm.test(\"Expected partyIdType is MSISDN\", function () {",
+											"          pm.expect(jsonData.party.partyIdInfo.partyIdType).to.eql('MSISDN');",
+											"        });",
+											"        pm.test(\"Expected partyIdentifier is \"+pm.environment.get('goldenpayeefspReceiverMSISDN'), function () {",
+											"          pm.expect(jsonData.party.partyIdInfo.partyIdentifier).to.eql(pm.environment.get('goldenpayeefspReceiverMSISDN'));",
+											"        });",
+											"        pm.test(\"Expected fspId is goldenpayeefsp\", function () {",
+											"          pm.expect(jsonData.party.partyIdInfo.fspId).to.eql('goldenpayeefsp');",
+											"        });",
+											"        ",
+											"      pm.test(\"Expected receiver first name is: \"+pm.variables.get(\"expectedPayeeFirstName\"), function () {",
+											"          pm.expect(jsonData.party.personalInfo.complexName.firstName).to.eql(pm.variables.get(\"expectedPayeeFirstName\"));",
+											"        });",
+											"        pm.test(\"Expected receiver last name is: \"+pm.variables.get(\"expectedPayeeLastName\"), function () {",
+											"          pm.expect(jsonData.party.personalInfo.complexName.lastName).to.eql(pm.variables.get(\"expectedPayeeLastName\"));",
+											"        });",
+											"        pm.test(\"Expected receiver DOB: \"+pm.variables.get(\"expectedPayeeDOB\"), function () {",
+											"          pm.expect(jsonData.party.personalInfo.dateOfBirth).to.eql(pm.variables.get(\"expectedPayeeDOB\"));",
+											"        });  ",
+											"        ",
+											"      } else {",
+											"          pm.test(\"Parties FAILED - payerFSP\", function () {",
+											"            throw new Error('Did not receive response');",
+											"          });",
+											"        }",
+											"    });",
+											"}, 100)",
+											"",
+											"var transferID = pm.response.json().scenario1.result.transferId",
+											"//Check the request that Switch forwards to payeefsp",
+											"setTimeout(function () {",
+											"  pm.sendRequest(pm.environment.get(\"GOLDENPAYEEFSP_SDK_INBOUND_URL\")+\"/requests/\"+transferID, function (err, response) {",
+											"          if(response.responseSize !== 0) {",
+											"              ",
+											"              //Check the Headers",
+											"              var headers = response.json().headers;",
+											"              ",
+											"                pm.test(\"On payeefsp fspiop-source is payerfsp\", function () {",
+											"                    pm.expect(headers['fspiop-source']).to.eql('goldenpayerfsp');",
+											"                });",
+											"                ",
+											"                pm.test(\"On payeefsp fspiop-destination is payeefsp\", function () {",
+											"                    pm.expect(headers['fspiop-destination']).to.eql('goldenpayeefsp');",
+											"                });",
+											"                ",
+											"                pm.test(\"On payeefsp content-typeis same as sent in the request\", function () {",
+											"                    pm.expect(headers['content-type']).to.eql('application/vnd.interoperability.transfers+json;version=1.0');",
+											"                });",
+											"                ",
+											"                pm.test(\"On payeefsp accept is same as sent in the request\", function () {",
+											"                    pm.expect(headers['accept']).to.eql('application/vnd.interoperability.transfers+json;version=1.0');",
+											"                });",
+											"                ",
+											"                pm.test(\"On payeefsp fspiop-http-method is POST\", function () {",
+											"                    pm.expect(headers['fspiop-http-method']).to.eql('POST');",
+											"                });",
+											"                ",
+											"                pm.test(\"On payeefsp fspiop-uri is /transfers\", function () {",
+											"                    pm.expect(headers['fspiop-uri']).to.eql('/transfers');",
+											"                });",
+											"                ",
+											"                ",
+											"                //Check the data",
+											"                var jsonData = response.json().data;",
+											"                pm.test(\"On payeefsp data should have the same transferId as request\", function () {",
+											"                  pm.expect(jsonData.transferId).to.eql(transferID);",
+											"                });",
+											"                pm.test(\"On payeefsp data should have the same payerfspId as request\", function () {",
+											"                  pm.expect(jsonData.payerFsp).to.eql('goldenpayerfsp');",
+											"                });",
+											"                pm.test(\"On payeefsp data should have the same payeefspId as request\", function () {",
+											"                  pm.expect(jsonData.payeeFsp).to.eql('goldenpayeefsp');",
+											"                });",
+											"                pm.test(\"On payeefsp data should have the same amount as request\", function () {",
+											"                  pm.expect(jsonData.amount.amount).to.eql('10');",
+											"                });",
+											"                pm.test(\"payeefsp data should have the same currency as request\", function () {",
+											"                  pm.expect(jsonData.amount.currency).to.eql(pm.environment.get(\"currency\"));",
+											"                });",
+											"                // pm.test(\"payeefsp data should have the same expiration as request\", function () {",
+											"                //   pm.expect(jsonData.expiration).to.eql(pm.environment.get(\"transferExpiration\"));",
+											"                // });",
+											"                // pm.test(\"payeefsp data should have the same ilpPacket as request\", function () {",
+											"                //   pm.expect(jsonData.ilpPacket).to.eql(pm.environment.get(\"ilpPacket\"));",
+											"                // });",
+											"                // pm.test(\"payeefsp data should have the same condition as request\", function () {",
+											"                //   pm.expect(jsonData.condition).to.eql(pm.environment.get(\"condition\"));",
+											"                // });",
+											"                ",
+											"          } else {",
+											"              pm.test(\"Transfer FAILED\", function () {",
+											"                throw new Error('Did not receive response');",
+											"              });",
+											"",
+											"          }",
+											"  });",
+											"}, 100)",
+											"",
+											"//Check the callback response that Switch forwards to payerfsp",
+											"setTimeout(function () {",
+											"  pm.sendRequest(pm.environment.get(\"GOLDENPAYERFSP_SDK_INBOUND_URL\")+\"/callbacks/\"+transferID, function (err, response) {",
+											"          if(response.responseSize !== 0) {",
+											"            //Checking headers",
+											"            var headers = response.json().headers;",
+											"            pm.test(\"On payerfsp fspiop-source is payeefsp\", function () {",
+											"                pm.expect(headers['fspiop-source']).to.eql('goldenpayeefsp');",
+											"            });",
+											"            ",
+											"            pm.test(\"On payerfsp fspiop-destination is payerfsp\", function () {",
+											"                pm.expect(headers['fspiop-destination']).to.eql('goldenpayerfsp');",
+											"            });",
+											"            ",
+											"            pm.test(\"On payerfsp content-type should be application/vnd.interoperability.transfers+json;version=1.0\", function () {",
+											"                pm.expect(headers['content-type']).to.eql('application/vnd.interoperability.transfers+json;version=1.0');",
+											"            });",
+											"            ",
+											"            pm.test(\"payerfsp accept is empty\", function () {",
+											"                pm.expect(headers['accept']).to.eql(undefined);",
+											"            });",
+											"            ",
+											"            // pm.test(\"fspiop-signature is returned\", function () {",
+											"            //     pm.expect(headers['fspiop-signature']).to.eql(pm.environment.get(\"payeefsp_fspiop_signature\"));",
+											"            // });",
+											"           ",
+											"            ",
+											"            pm.test(\"payerfsp fspiop-uri includes transfers\", function () {",
+											"                pm.expect(headers['fspiop-uri']).to.include('/transfers');",
+											"            });",
+											"            ",
+											"            pm.test(\"payerfsp fspiop-http-method is PUT\", function () {",
+											"                pm.expect(headers['fspiop-http-method']).to.eql('PUT');",
+											"            });",
+											"            ",
+											"            var jsonData = response.json().data;",
+											"            pm.test(\"Response data does not have transferId\", function () {",
+											"              pm.expect(jsonData.transferId).to.eql(undefined);",
+											"            });",
+											"            pm.test(\"Response status is COMMITTED\", function () {",
+											"                pm.expect(jsonData.transferState).to.eql('COMMITTED');",
+											"            });",
+											"          } else {",
+											"              pm.test(\"Transfer FAILED\", function () {",
+											"                throw new Error('Did not receive response');",
+											"              });",
+											"",
+											"          }",
+											"  });",
+											"}, 100)",
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Accept",
+										"type": "text",
+										"value": "application/vnd.interoperability.transfers+json;version=1",
+										"disabled": true
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/vnd.interoperability.transfers+json;version=1.0",
+										"disabled": true
+									},
+									{
+										"key": "Date",
+										"type": "text",
+										"value": "{{transferDate}}",
+										"disabled": true
+									},
+									{
+										"key": "FSPIOP-Source",
+										"type": "text",
+										"value": "{{payerfsp}}",
+										"disabled": true
+									},
+									{
+										"key": "FSPIOP-Destination",
+										"type": "text",
+										"value": "{{payeefsp}}",
+										"disabled": true
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"from\": {\n        \"displayName\": \"PayerFirst PayerLast\",\n        \"idType\": \"ALIAS\",\n        \"idValue\": \"{{payerfspALIAS}}\"\n    },\n    \"to\": {\n        \"idType\": \"ALIAS\",\n        \"idValue\": \"{{payeefspALIAS}}\"\n    },\n    \"amountType\": \"SEND\",\n    \"currency\": \"{{currency}}\",\n    \"amount\": \"10\",\n    \"transactionType\": \"TRANSFER\",\n    \"initiatorType\": \"CONSUMER\",\n    \"note\": \"test payment\",\n    \"homeTransactionId\": \"{{$guid}}\"\n}"
+								},
+								"url": {
+									"raw": "{{PAYERFSP_SDK_OUTBOUND_URL}}/transfers",
+									"host": [
+										"{{PAYERFSP_SDK_OUTBOUND_URL}}"
+									],
+									"path": [
+										"transfers"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"protocolProfileBehavior": {},
+					"_postman_isSubFolder": true
+				},
+				{
+					"name": "merchant payments",
+					"item": [
+						{
+							"name": "BUSINESS",
+							"item": [
+								{
+									"name": "aceeptQuote - true",
+									"item": [
+										{
+											"name": "Add {{payerfspMSISDN}} to payerfsp",
+											"event": [
+												{
+													"listen": "prerequest",
+													"script": {
+														"id": "aa912d5a-10e9-444a-970c-c005e307b713",
+														"exec": [
+															"pm.environment.set('fullName', 'SimFirst SimLast');",
+															"pm.environment.set('firstName', 'SimFirst');",
+															"pm.environment.set('middleName', 'SimMiddle');",
+															"pm.environment.set('lastName', 'SimLast');",
+															"pm.environment.set('dob', '2010-10-10');"
+														],
+														"type": "text/javascript"
+													}
+												},
+												{
+													"listen": "test",
+													"script": {
+														"id": "04a7ae97-9c85-439d-806d-cc44575537b2",
+														"exec": [
+															"pm.test(\"Successful POST request\", function () {",
+															"    pm.expect(pm.response.code).to.be.oneOf([204,200, 500]);",
+															"});"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "noauth"
+												},
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n    \"displayName\": \"{{fullName}}\",\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{lastName}}\",\n    \"dateOfBirth\": \"{{dob}}\",\n    \"idType\": \"MSISDN\",\n    \"idValue\": \"{{payerfspMSISDN}}\"\n}"
+												},
+												"url": {
+													"raw": "{{PAYERFSP_BACKEND_TESTAPI_URL}}/repository/parties",
+													"host": [
+														"{{PAYERFSP_BACKEND_TESTAPI_URL}}"
+													],
+													"path": [
+														"repository",
+														"parties"
+													]
+												},
+												"description": "Create a party in payeefsp. So that GET /parties can be successful."
+											},
+											"response": [
+												{
+													"name": "An error occured processing the request",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n    \"displayName\": \"<string>\",\n    \"firstName\": \"<string>\",\n    \"middleName\": \"<string>\",\n    \"lastName\": \"<string>\",\n    \"dateOfBirth\": \"<string>\",\n    \"merchantClassificationCode\": \"<string>\"\n}"
+														},
+														"url": {
+															"raw": "{{baseUrl}}/repository/parties",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"repository",
+																"parties"
+															]
+														}
+													},
+													"status": "Internal Server Error",
+													"code": 500,
+													"_postman_previewlanguage": "Text",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "text/plain"
+														}
+													],
+													"cookie": [],
+													"body": ""
+												},
+												{
+													"name": "The party was created",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n    \"displayName\": \"<string>\",\n    \"firstName\": \"<string>\",\n    \"middleName\": \"<string>\",\n    \"lastName\": \"<string>\",\n    \"dateOfBirth\": \"<string>\",\n    \"merchantClassificationCode\": \"<string>\"\n}"
+														},
+														"url": {
+															"raw": "{{baseUrl}}/repository/parties",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"repository",
+																"parties"
+															]
+														}
+													},
+													"status": "No Content",
+													"code": 204,
+													"_postman_previewlanguage": "Text",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "text/plain"
+														}
+													],
+													"cookie": [],
+													"body": ""
+												}
+											]
+										},
+										{
+											"name": "payeefsp - POST /requestToPay",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"id": "6fb9da1f-1ef7-461d-b4b2-fe8da199af1e",
+														"exec": [
+															"pm.test(\"Status code is 200\", function () {",
+															"    pm.response.to.have.status(200);",
+															"});",
+															"",
+															"let jsonData = pm.response.json();",
+															"",
+															"pm.test(`homeTransactionId is: ${pm.variables.get('homeTransactionId')}`, function () {",
+															"    pm.expect(jsonData.homeTransactionId).to.eql(pm.variables.get('homeTransactionId'));",
+															"});",
+															"",
+															"pm.test(`from.idType is BUSINESS`, function () {",
+															"    pm.expect(jsonData.from.idType).to.eql('BUSINESS');",
+															"});",
+															"",
+															"pm.test(`from.idValue is Starbucks`, function () {",
+															"    pm.expect(jsonData.from.idValue).to.eql('Starbucks');",
+															"});",
+															"",
+															"pm.test(`to.idType is MSISDN`, function () {",
+															"    pm.expect(jsonData.to.idType).to.eql('MSISDN');",
+															"});",
+															"",
+															"pm.test(`to.idValue is ${pm.environment.get('payerfspMSISDN')}`, function () {",
+															"    pm.expect(jsonData.to.idValue).to.eql(pm.environment.get('payerfspMSISDN'));",
+															"});",
+															"",
+															"pm.test(`to.fspId is payerfsp`, function () {",
+															"    pm.expect(jsonData.to.fspId).to.eql('payerfsp');",
+															"});",
+															"",
+															"pm.test(`amountType is SEND`, function () {",
+															"    pm.expect(jsonData.amountType).to.eql('SEND');",
+															"});",
+															"",
+															"pm.test(`currency is ${pm.environment.get('currency')}`, function () {",
+															"    pm.expect(jsonData.currency).to.eql(pm.environment.get('currency'));",
+															"});",
+															"",
+															"pm.test(`amount is 10`, function () {",
+															"    pm.expect(jsonData.amount).to.eql('10');",
+															"});",
+															"",
+															"pm.test(`scenario is PAYMENT`, function () {",
+															"    pm.expect(jsonData.scenario).to.eql('PAYMENT');",
+															"});",
+															"",
+															"pm.test(`initiator is PAYEE`, function () {",
+															"    pm.expect(jsonData.initiator).to.eql('PAYEE');",
+															"});",
+															"",
+															"pm.test(`initiatorType is BUSINESS`, function () {",
+															"    pm.expect(jsonData.initiatorType).to.eql('BUSINESS');",
+															"});",
+															"",
+															"pm.test(`transactionRequestId is not null`, function () {",
+															"    pm.expect(jsonData.transactionRequestId).to.not.equal('');",
+															"    pm.environment.set('transactionRequestId',jsonData.transactionRequestId);",
+															"});",
+															"",
+															"pm.test(`currentState is COMPLETED`, function () {",
+															"    pm.expect(jsonData.currentState).to.eql('COMPLETED');",
+															"});",
+															"",
+															"pm.test(`requestToPayState is RECEIVED`, function () {",
+															"    pm.expect(jsonData.requestToPayState).to.eql('RECEIVED');",
+															"});",
+															""
+														],
+														"type": "text/javascript"
+													}
+												},
+												{
+													"listen": "prerequest",
+													"script": {
+														"id": "d747e941-3ac1-45bd-bf66-a2271c44ad0e",
+														"exec": [
+															"",
+															"var uuid = require('uuid');",
+															"pm.variables.set('homeTransactionId',uuid.v4());"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n    \"homeTransactionId\": \"{{homeTransactionId}}\",\n    \"from\": {\n        \"idType\": \"BUSINESS\",\n        \"idValue\": \"Starbucks\",\n        \"displayName\": \"Starbucks Coffee\"\n    },\n    \"to\": {\n        \"idType\": \"MSISDN\",\n        \"idValue\": \"{{payerfspMSISDN}}\"\n    },\n    \"amountType\": \"SEND\",\n    \"currency\": \"{{currency}}\",\n    \"amount\": \"10\",\n    \"scenario\":\"PAYMENT\",\n    \"initiator\":\"PAYEE\",\n    \"initiatorType\":\"BUSINESS\",\n    \"note\": \"test payment\"\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{PAYEEFSP_SDK_OUTBOUND_URL}}/requestToPay",
+													"host": [
+														"{{PAYEEFSP_SDK_OUTBOUND_URL}}"
+													],
+													"path": [
+														"requestToPay"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "payerfsp - POST /requestToPayTransfer",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"id": "474356c0-b937-4591-b051-352f78d6bba0",
+														"exec": [
+															"pm.test(\"Status code is 200\", function () {",
+															"    pm.response.to.have.status(200);",
+															"});",
+															"",
+															"let jsonData = pm.response.json();",
+															"",
+															"pm.environment.set('transferId',jsonData.transferId);",
+															"",
+															"pm.test(`requestToPayTransactionId is: ${pm.variables.get('transactionRequestId')}`, function () {",
+															"    pm.expect(jsonData.requestToPayTransactionId).to.eql(pm.variables.get('transactionRequestId'));",
+															"});",
+															"",
+															"pm.test(`from.idType is MSISDN`, function () {",
+															"    pm.expect(jsonData.from.idType).to.eql('MSISDN');",
+															"});",
+															"",
+															"pm.test(`from.idValue is ${pm.environment.get('payerfspMSISDN')}`, function () {",
+															"    pm.expect(jsonData.from.idValue).to.eql(pm.environment.get('payerfspMSISDN'));",
+															"});",
+															"",
+															"pm.test(`to.idType is BUSINESS`, function () {",
+															"    pm.expect(jsonData.to.idType).to.eql('BUSINESS');",
+															"});",
+															"",
+															"pm.test(`to.idValue isStarbucks`, function () {",
+															"    pm.expect(jsonData.to.idValue).to.eql('Starbucks');",
+															"});",
+															"",
+															"pm.test(`to.fspId is payeefsp`, function () {",
+															"    pm.expect(jsonData.to.fspId).to.eql('payeefsp');",
+															"});",
+															"",
+															"pm.test(`amountType is SEND`, function () {",
+															"    pm.expect(jsonData.amountType).to.eql('SEND');",
+															"});",
+															"",
+															"pm.test(`currency is ${pm.environment.get('currency')}`, function () {",
+															"    pm.expect(jsonData.currency).to.eql(pm.environment.get('currency'));",
+															"});",
+															"",
+															"pm.test(`amount is 10`, function () {",
+															"    pm.expect(jsonData.amount).to.eql('10');",
+															"});",
+															"",
+															"pm.test(`scenario is PAYMENT`, function () {",
+															"    pm.expect(jsonData.scenario).to.eql('PAYMENT');",
+															"});",
+															"",
+															"pm.test(`initiator is PAYEE`, function () {",
+															"    pm.expect(jsonData.initiator).to.eql('PAYEE');",
+															"});",
+															"",
+															"pm.test(`initiatorType is BUSINESS`, function () {",
+															"    pm.expect(jsonData.initiatorType).to.eql('BUSINESS');",
+															"});",
+															"",
+															"pm.test(`currentState is WAITING_FOR_QUOTE_ACCEPTANCE`, function () {",
+															"    pm.expect(jsonData.currentState).to.eql('WAITING_FOR_QUOTE_ACCEPTANCE');",
+															"});",
+															"",
+															"pm.test(`quoteResponse is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.transferAmount.amount is 10`, function () {",
+															"    pm.expect(jsonData.quoteResponse.transferAmount.amount).to.eql('10');",
+															"});",
+															"",
+															"pm.test(`quoteResponse.transferAmount.currency is ${pm.environment.get('currency')}`, function () {",
+															"    pm.expect(jsonData.quoteResponse.transferAmount.currency).to.eql(pm.environment.get('currency'));",
+															"});",
+															"",
+															"pm.test(`quoteResponse.expiration is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.expiration).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.ilpPacket is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.ilpPacket).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.condition is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.condition).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.payeeFspFee is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.payeeFspFee).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.payeeFspCommission is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.payeeFspCommission).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`fulfil is  null`, function () {",
+															"    pm.expect(jsonData.fulfil).to.equal(undefined);",
+															"});",
+															"",
+															""
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"requestToPayTransactionId\": \"{{transactionRequestId}}\",\n  \"from\": {\n    \"displayName\": \"CustomerName\",\n    \"idType\": \"MSISDN\",\n    \"idValue\": \"17855501914\"\n  },\n  \"to\": {\n    \"idType\": \"BUSINESS\",\n    \"idValue\": \"Starbucks\",\n    \"fspId\": \"payeefsp\"\n  },\n  \"amountType\": \"SEND\",\n  \"currency\": \"{{currency}}\",\n  \"amount\": \"10\",\n  \"scenario\":\"PAYMENT\",\n  \"initiator\":\"PAYEE\",\n  \"initiatorType\":\"BUSINESS\",\n  \"note\": \"test payment\"\n}\n",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{PAYERFSP_SDK_OUTBOUND_URL}}/requestToPayTransfer",
+													"host": [
+														"{{PAYERFSP_SDK_OUTBOUND_URL}}"
+													],
+													"path": [
+														"requestToPayTransfer"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "payerfsp - PUT /requestToPayTransfer/{Id}",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"id": "ae69b50b-e7f6-46be-989c-85dcaeeb3c35",
+														"exec": [
+															"pm.test(\"Status code is 200\", function () {",
+															"    pm.response.to.have.status(200);",
+															"});",
+															"",
+															"let jsonData = pm.response.json();",
+															"",
+															"pm.environment.set('transferId',jsonData.transferId);",
+															"",
+															"pm.test(`requestToPayTransactionId is: ${pm.variables.get('transactionRequestId')}`, function () {",
+															"    pm.expect(jsonData.requestToPayTransactionId).to.eql(pm.variables.get('transactionRequestId'));",
+															"});",
+															"",
+															"pm.test(`from.idType is MSISDN`, function () {",
+															"    pm.expect(jsonData.from.idType).to.eql('MSISDN');",
+															"});",
+															"",
+															"pm.test(`from.idValue is ${pm.environment.get('payerfspMSISDN')}`, function () {",
+															"    pm.expect(jsonData.from.idValue).to.eql(pm.environment.get('payerfspMSISDN'));",
+															"});",
+															"",
+															"pm.test(`to.idType is BISUNESS`, function () {",
+															"    pm.expect(jsonData.to.idType).to.eql('BUSINESS');",
+															"});",
+															"",
+															"pm.test(`to.idValue isStarbucks`, function () {",
+															"    pm.expect(jsonData.to.idValue).to.eql('Starbucks');",
+															"});",
+															"",
+															"pm.test(`to.fspId is payeefsp`, function () {",
+															"    pm.expect(jsonData.to.fspId).to.eql('payeefsp');",
+															"});",
+															"",
+															"pm.test(`amountType is SEND`, function () {",
+															"    pm.expect(jsonData.amountType).to.eql('SEND');",
+															"});",
+															"",
+															"pm.test(`currency is ${pm.environment.get('currency')}`, function () {",
+															"    pm.expect(jsonData.currency).to.eql(pm.environment.get('currency'));",
+															"});",
+															"",
+															"pm.test(`amount is 10`, function () {",
+															"    pm.expect(jsonData.amount).to.eql('10');",
+															"});",
+															"",
+															"pm.test(`scenario is PAYMENT`, function () {",
+															"    pm.expect(jsonData.scenario).to.eql('PAYMENT');",
+															"});",
+															"",
+															"pm.test(`initiator is PAYEE`, function () {",
+															"    pm.expect(jsonData.initiator).to.eql('PAYEE');",
+															"});",
+															"",
+															"pm.test(`initiatorType is BUSINESS`, function () {",
+															"    pm.expect(jsonData.initiatorType).to.eql('BUSINESS');",
+															"});",
+															"",
+															"pm.test(`currentState is COMPLETED`, function () {",
+															"    pm.expect(jsonData.currentState).to.eql('COMPLETED');",
+															"});",
+															"",
+															"pm.test(`quoteResponse is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.transferAmount.amount is 10`, function () {",
+															"    pm.expect(jsonData.quoteResponse.transferAmount.amount).to.eql('10');",
+															"});",
+															"",
+															"pm.test(`quoteResponse.transferAmount.currency is ${pm.environment.get('currency')}`, function () {",
+															"    pm.expect(jsonData.quoteResponse.transferAmount.currency).to.eql(pm.environment.get('currency'));",
+															"});",
+															"",
+															"pm.test(`quoteResponse.expiration is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.expiration).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.ilpPacket is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.ilpPacket).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.condition is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.condition).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.payeeFspFee is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.payeeFspFee).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.payeeFspCommission is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.payeeFspCommission).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`otpResponse is null`, function () {",
+															"    pm.expect(jsonData.otpResponse).to.eql(undefined);",
+															"});",
+															"",
+															"pm.test(`fulfil is not null`, function () {",
+															"    pm.expect(jsonData.fulfil).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`fulfil.completedTimestamp is not null`, function () {",
+															"    pm.expect(jsonData.fulfil.completedTimestamp).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`fulfil.transferState is COMMITTED`, function () {",
+															"    pm.expect(jsonData.fulfil.transferState).to.eql('COMMITTED');",
+															"});",
+															"",
+															"pm.test(`fulfil.fulfilment is not null`, function () {",
+															"    pm.expect(jsonData.fulfil.fulfilment).to.not.equal(null);",
+															"});"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"acceptQuote\": true\n}\n",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{PAYERFSP_SDK_OUTBOUND_URL}}/requestToPayTransfer/{{transactionRequestId}}",
+													"host": [
+														"{{PAYERFSP_SDK_OUTBOUND_URL}}"
+													],
+													"path": [
+														"requestToPayTransfer",
+														"{{transactionRequestId}}"
+													]
+												}
+											},
+											"response": []
+										}
+									],
+									"protocolProfileBehavior": {},
+									"_postman_isSubFolder": true
+								},
+								{
+									"name": "aceeptQuote - false",
+									"item": [
+										{
+											"name": "Add {{payerfspMSISDN}} to payerfsp",
+											"event": [
+												{
+													"listen": "prerequest",
+													"script": {
+														"id": "aa912d5a-10e9-444a-970c-c005e307b713",
+														"exec": [
+															"pm.environment.set('fullName', 'SimFirst SimLast');",
+															"pm.environment.set('firstName', 'SimFirst');",
+															"pm.environment.set('middleName', 'SimMiddle');",
+															"pm.environment.set('lastName', 'SimLast');",
+															"pm.environment.set('dob', '2010-10-10');"
+														],
+														"type": "text/javascript"
+													}
+												},
+												{
+													"listen": "test",
+													"script": {
+														"id": "04a7ae97-9c85-439d-806d-cc44575537b2",
+														"exec": [
+															"pm.test(\"Successful POST request\", function () {",
+															"    pm.expect(pm.response.code).to.be.oneOf([204,200, 500]);",
+															"});"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "noauth"
+												},
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n    \"displayName\": \"{{fullName}}\",\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{lastName}}\",\n    \"dateOfBirth\": \"{{dob}}\",\n    \"idType\": \"MSISDN\",\n    \"idValue\": \"{{payerfspMSISDN}}\"\n}"
+												},
+												"url": {
+													"raw": "{{PAYERFSP_BACKEND_TESTAPI_URL}}/repository/parties",
+													"host": [
+														"{{PAYERFSP_BACKEND_TESTAPI_URL}}"
+													],
+													"path": [
+														"repository",
+														"parties"
+													]
+												},
+												"description": "Create a party in payeefsp. So that GET /parties can be successful."
+											},
+											"response": [
+												{
+													"name": "An error occured processing the request",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n    \"displayName\": \"<string>\",\n    \"firstName\": \"<string>\",\n    \"middleName\": \"<string>\",\n    \"lastName\": \"<string>\",\n    \"dateOfBirth\": \"<string>\",\n    \"merchantClassificationCode\": \"<string>\"\n}"
+														},
+														"url": {
+															"raw": "{{baseUrl}}/repository/parties",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"repository",
+																"parties"
+															]
+														}
+													},
+													"status": "Internal Server Error",
+													"code": 500,
+													"_postman_previewlanguage": "Text",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "text/plain"
+														}
+													],
+													"cookie": [],
+													"body": ""
+												},
+												{
+													"name": "The party was created",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n    \"displayName\": \"<string>\",\n    \"firstName\": \"<string>\",\n    \"middleName\": \"<string>\",\n    \"lastName\": \"<string>\",\n    \"dateOfBirth\": \"<string>\",\n    \"merchantClassificationCode\": \"<string>\"\n}"
+														},
+														"url": {
+															"raw": "{{baseUrl}}/repository/parties",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"repository",
+																"parties"
+															]
+														}
+													},
+													"status": "No Content",
+													"code": 204,
+													"_postman_previewlanguage": "Text",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "text/plain"
+														}
+													],
+													"cookie": [],
+													"body": ""
+												}
+											]
+										},
+										{
+											"name": "payeefsp - POST /requestToPay",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"id": "6fb9da1f-1ef7-461d-b4b2-fe8da199af1e",
+														"exec": [
+															"pm.test(\"Status code is 200\", function () {",
+															"    pm.response.to.have.status(200);",
+															"});",
+															"",
+															"let jsonData = pm.response.json();",
+															"",
+															"pm.test(`homeTransactionId is: ${pm.variables.get('homeTransactionId')}`, function () {",
+															"    pm.expect(jsonData.homeTransactionId).to.eql(pm.variables.get('homeTransactionId'));",
+															"});",
+															"",
+															"pm.test(`from.idType is BUSINESS`, function () {",
+															"    pm.expect(jsonData.from.idType).to.eql('BUSINESS');",
+															"});",
+															"",
+															"pm.test(`from.idValue is Starbucks`, function () {",
+															"    pm.expect(jsonData.from.idValue).to.eql('Starbucks');",
+															"});",
+															"",
+															"pm.test(`to.idType is MSISDN`, function () {",
+															"    pm.expect(jsonData.to.idType).to.eql('MSISDN');",
+															"});",
+															"",
+															"pm.test(`to.idValue is ${pm.environment.get('payerfspMSISDN')}`, function () {",
+															"    pm.expect(jsonData.to.idValue).to.eql(pm.environment.get('payerfspMSISDN'));",
+															"});",
+															"",
+															"pm.test(`to.fspId is payerfsp`, function () {",
+															"    pm.expect(jsonData.to.fspId).to.eql('payerfsp');",
+															"});",
+															"",
+															"pm.test(`amountType is SEND`, function () {",
+															"    pm.expect(jsonData.amountType).to.eql('SEND');",
+															"});",
+															"",
+															"pm.test(`currency is ${pm.environment.get('currency')}`, function () {",
+															"    pm.expect(jsonData.currency).to.eql(pm.environment.get('currency'));",
+															"});",
+															"",
+															"pm.test(`amount is 10`, function () {",
+															"    pm.expect(jsonData.amount).to.eql('10');",
+															"});",
+															"",
+															"pm.test(`scenario is PAYMENT`, function () {",
+															"    pm.expect(jsonData.scenario).to.eql('PAYMENT');",
+															"});",
+															"",
+															"pm.test(`initiator is PAYEE`, function () {",
+															"    pm.expect(jsonData.initiator).to.eql('PAYEE');",
+															"});",
+															"",
+															"pm.test(`initiatorType is BUSINESS`, function () {",
+															"    pm.expect(jsonData.initiatorType).to.eql('BUSINESS');",
+															"});",
+															"",
+															"pm.test(`transactionRequestId is not null`, function () {",
+															"    pm.expect(jsonData.transactionRequestId).to.not.equal('');",
+															"    pm.environment.set('transactionRequestId',jsonData.transactionRequestId);",
+															"});",
+															"",
+															"pm.test(`currentState is COMPLETED`, function () {",
+															"    pm.expect(jsonData.currentState).to.eql('COMPLETED');",
+															"});",
+															"",
+															"pm.test(`requestToPayState is RECEIVED`, function () {",
+															"    pm.expect(jsonData.requestToPayState).to.eql('RECEIVED');",
+															"});",
+															""
+														],
+														"type": "text/javascript"
+													}
+												},
+												{
+													"listen": "prerequest",
+													"script": {
+														"id": "d747e941-3ac1-45bd-bf66-a2271c44ad0e",
+														"exec": [
+															"",
+															"var uuid = require('uuid');",
+															"pm.variables.set('homeTransactionId',uuid.v4());"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n    \"homeTransactionId\": \"{{homeTransactionId}}\",\n    \"from\": {\n        \"idType\": \"BUSINESS\",\n        \"idValue\": \"Starbucks\",\n        \"displayName\": \"Starbucks Coffee\"\n    },\n    \"to\": {\n        \"idType\": \"MSISDN\",\n        \"idValue\": \"{{payerfspMSISDN}}\"\n    },\n    \"amountType\": \"SEND\",\n    \"currency\": \"{{currency}}\",\n    \"amount\": \"10\",\n    \"scenario\":\"PAYMENT\",\n    \"initiator\":\"PAYEE\",\n    \"initiatorType\":\"BUSINESS\",\n    \"note\": \"test payment\"\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{PAYEEFSP_SDK_OUTBOUND_URL}}/requestToPay",
+													"host": [
+														"{{PAYEEFSP_SDK_OUTBOUND_URL}}"
+													],
+													"path": [
+														"requestToPay"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "payerfsp - POST /requestToPayTransfer",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"id": "474356c0-b937-4591-b051-352f78d6bba0",
+														"exec": [
+															"pm.test(\"Status code is 200\", function () {",
+															"    pm.response.to.have.status(200);",
+															"});",
+															"",
+															"let jsonData = pm.response.json();",
+															"",
+															"pm.environment.set('transferId',jsonData.transferId);",
+															"",
+															"pm.test(`requestToPayTransactionId is: ${pm.variables.get('transactionRequestId')}`, function () {",
+															"    pm.expect(jsonData.requestToPayTransactionId).to.eql(pm.variables.get('transactionRequestId'));",
+															"});",
+															"",
+															"pm.test(`from.idType is MSISDN`, function () {",
+															"    pm.expect(jsonData.from.idType).to.eql('MSISDN');",
+															"});",
+															"",
+															"pm.test(`from.idValue is ${pm.environment.get('payerfspMSISDN')}`, function () {",
+															"    pm.expect(jsonData.from.idValue).to.eql(pm.environment.get('payerfspMSISDN'));",
+															"});",
+															"",
+															"pm.test(`to.idType is BUSINESS`, function () {",
+															"    pm.expect(jsonData.to.idType).to.eql('BUSINESS');",
+															"});",
+															"",
+															"pm.test(`to.idValue isStarbucks`, function () {",
+															"    pm.expect(jsonData.to.idValue).to.eql('Starbucks');",
+															"});",
+															"",
+															"pm.test(`to.fspId is payeefsp`, function () {",
+															"    pm.expect(jsonData.to.fspId).to.eql('payeefsp');",
+															"});",
+															"",
+															"pm.test(`amountType is SEND`, function () {",
+															"    pm.expect(jsonData.amountType).to.eql('SEND');",
+															"});",
+															"",
+															"pm.test(`currency is ${pm.environment.get('currency')}`, function () {",
+															"    pm.expect(jsonData.currency).to.eql(pm.environment.get('currency'));",
+															"});",
+															"",
+															"pm.test(`amount is 10`, function () {",
+															"    pm.expect(jsonData.amount).to.eql('10');",
+															"});",
+															"",
+															"pm.test(`scenario is PAYMENT`, function () {",
+															"    pm.expect(jsonData.scenario).to.eql('PAYMENT');",
+															"});",
+															"",
+															"pm.test(`initiator is PAYEE`, function () {",
+															"    pm.expect(jsonData.initiator).to.eql('PAYEE');",
+															"});",
+															"",
+															"pm.test(`initiatorType is BUSINESS`, function () {",
+															"    pm.expect(jsonData.initiatorType).to.eql('BUSINESS');",
+															"});",
+															"",
+															"pm.test(`currentState is WAITING_FOR_QUOTE_ACCEPTANCE`, function () {",
+															"    pm.expect(jsonData.currentState).to.eql('WAITING_FOR_QUOTE_ACCEPTANCE');",
+															"});",
+															"",
+															"pm.test(`quoteResponse is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.transferAmount.amount is 10`, function () {",
+															"    pm.expect(jsonData.quoteResponse.transferAmount.amount).to.eql('10');",
+															"});",
+															"",
+															"pm.test(`quoteResponse.transferAmount.currency is ${pm.environment.get('currency')}`, function () {",
+															"    pm.expect(jsonData.quoteResponse.transferAmount.currency).to.eql(pm.environment.get('currency'));",
+															"});",
+															"",
+															"pm.test(`quoteResponse.expiration is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.expiration).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.ilpPacket is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.ilpPacket).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.condition is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.condition).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.payeeFspFee is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.payeeFspFee).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.payeeFspCommission is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.payeeFspCommission).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`fulfil is  null`, function () {",
+															"    pm.expect(jsonData.fulfil).to.equal(undefined);",
+															"});",
+															"",
+															""
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"requestToPayTransactionId\": \"{{transactionRequestId}}\",\n  \"from\": {\n    \"displayName\": \"CustomerName\",\n    \"idType\": \"MSISDN\",\n    \"idValue\": \"17855501914\"\n  },\n  \"to\": {\n    \"idType\": \"BUSINESS\",\n    \"idValue\": \"Starbucks\",\n    \"fspId\": \"payeefsp\"\n  },\n  \"amountType\": \"SEND\",\n  \"currency\": \"{{currency}}\",\n  \"amount\": \"10\",\n  \"scenario\":\"PAYMENT\",\n  \"initiator\":\"PAYEE\",\n  \"initiatorType\":\"BUSINESS\",\n  \"note\": \"test payment\"\n}\n",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{PAYERFSP_SDK_OUTBOUND_URL}}/requestToPayTransfer",
+													"host": [
+														"{{PAYERFSP_SDK_OUTBOUND_URL}}"
+													],
+													"path": [
+														"requestToPayTransfer"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "payerfsp - PUT /requestToPayTransfer/{Id}",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"id": "ae69b50b-e7f6-46be-989c-85dcaeeb3c35",
+														"exec": [
+															"pm.test(\"Status code is 200\", function () {",
+															"    pm.response.to.have.status(200);",
+															"});",
+															"",
+															"setTimeout(function () {",
+															"  pm.sendRequest(pm.environment.get(\"PAYEEFSP_SDK_INBOUND_URL\")+\"/callbacks/\"+pm.variables.get(\"transactionRequestId\"), function (err, response) {",
+															"          if(response.responseSize !== 0) {",
+															"              ",
+															"              //Check the Headers",
+															"              var headers = response.json().headers;",
+															"              ",
+															"                pm.test(\"payeefsp fspiop-source is payerfsp\", function () {",
+															"                    pm.expect(headers['fspiop-source']).to.eql('payerfsp');",
+															"                });",
+															"                ",
+															"                pm.test(\"payeefsp fspiop-destination is payeefsp\", function () {",
+															"                    pm.expect(headers['fspiop-destination']).to.eql('payeefsp');",
+															"                });",
+															"                ",
+															"                ",
+															"                pm.test(\"payeefsp accept is empty\", function () {",
+															"                    pm.expect(headers['accept']).to.eql(undefined);",
+															"                });",
+															"                ",
+															"                pm.test(\"payeefsp content-typeis same as sent in the request\", function () {",
+															"                    pm.expect(headers['content-type']).to.eql('application/vnd.interoperability.authorizations+json;version=1.0');",
+															"                });",
+															"                ",
+															"                var jsonData = response.json().data;",
+															"                pm.test(\"responseType is REJECTED\", function () {",
+															"                    pm.expect(jsonData.responseType).to.eql('REJECTED');",
+															"                });",
+															"                ",
+															"          } else {",
+															"              pm.test(\"Response FAILED\", function () {",
+															"                throw new Error('Did not receive callback on payee side');",
+															"              });",
+															"              // postman.setNextRequest(null)",
+															"          }",
+															"   });",
+															"}, 500)"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"acceptQuote\": false\n}\n",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{PAYERFSP_SDK_OUTBOUND_URL}}/requestToPayTransfer/{{transactionRequestId}}",
+													"host": [
+														"{{PAYERFSP_SDK_OUTBOUND_URL}}"
+													],
+													"path": [
+														"requestToPayTransfer",
+														"{{transactionRequestId}}"
+													]
+												}
+											},
+											"response": []
+										}
+									],
+									"protocolProfileBehavior": {},
+									"_postman_isSubFolder": true
+								}
+							],
+							"protocolProfileBehavior": {},
+							"_postman_isSubFolder": true
+						},
+						{
+							"name": "DEVICE - OTP",
+							"item": [
+								{
+									"name": "accept OTP - true",
+									"item": [
+										{
+											"name": "Add {{payerfspMSISDN}} to payerfsp",
+											"event": [
+												{
+													"listen": "prerequest",
+													"script": {
+														"id": "aa912d5a-10e9-444a-970c-c005e307b713",
+														"exec": [
+															"pm.environment.set('fullName', 'SimFirst SimLast');",
+															"pm.environment.set('firstName', 'SimFirst');",
+															"pm.environment.set('middleName', 'SimMiddle');",
+															"pm.environment.set('lastName', 'SimLast');",
+															"pm.environment.set('dob', '2010-10-10');"
+														],
+														"type": "text/javascript"
+													}
+												},
+												{
+													"listen": "test",
+													"script": {
+														"id": "04a7ae97-9c85-439d-806d-cc44575537b2",
+														"exec": [
+															"pm.test(\"Successful POST request\", function () {",
+															"    pm.expect(pm.response.code).to.be.oneOf([204,200, 500]);",
+															"});"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"auth": {
+													"type": "noauth"
+												},
+												"method": "POST",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n    \"displayName\": \"{{fullName}}\",\n    \"firstName\": \"{{firstName}}\",\n    \"middleName\": \"{{middleName}}\",\n    \"lastName\": \"{{lastName}}\",\n    \"dateOfBirth\": \"{{dob}}\",\n    \"idType\": \"MSISDN\",\n    \"idValue\": \"{{payerfspMSISDN}}\"\n}"
+												},
+												"url": {
+													"raw": "{{PAYERFSP_BACKEND_TESTAPI_URL}}/repository/parties",
+													"host": [
+														"{{PAYERFSP_BACKEND_TESTAPI_URL}}"
+													],
+													"path": [
+														"repository",
+														"parties"
+													]
+												},
+												"description": "Create a party in payeefsp. So that GET /parties can be successful."
+											},
+											"response": [
+												{
+													"name": "An error occured processing the request",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n    \"displayName\": \"<string>\",\n    \"firstName\": \"<string>\",\n    \"middleName\": \"<string>\",\n    \"lastName\": \"<string>\",\n    \"dateOfBirth\": \"<string>\",\n    \"merchantClassificationCode\": \"<string>\"\n}"
+														},
+														"url": {
+															"raw": "{{baseUrl}}/repository/parties",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"repository",
+																"parties"
+															]
+														}
+													},
+													"status": "Internal Server Error",
+													"code": 500,
+													"_postman_previewlanguage": "Text",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "text/plain"
+														}
+													],
+													"cookie": [],
+													"body": ""
+												},
+												{
+													"name": "The party was created",
+													"originalRequest": {
+														"method": "POST",
+														"header": [
+															{
+																"key": "Content-Type",
+																"value": "application/json"
+															}
+														],
+														"body": {
+															"mode": "raw",
+															"raw": "{\n    \"displayName\": \"<string>\",\n    \"firstName\": \"<string>\",\n    \"middleName\": \"<string>\",\n    \"lastName\": \"<string>\",\n    \"dateOfBirth\": \"<string>\",\n    \"merchantClassificationCode\": \"<string>\"\n}"
+														},
+														"url": {
+															"raw": "{{baseUrl}}/repository/parties",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"repository",
+																"parties"
+															]
+														}
+													},
+													"status": "No Content",
+													"code": 204,
+													"_postman_previewlanguage": "Text",
+													"header": [
+														{
+															"key": "Content-Type",
+															"value": "text/plain"
+														}
+													],
+													"cookie": [],
+													"body": ""
+												}
+											]
+										},
+										{
+											"name": "payeefsp - POST /requestToPay",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"id": "6fb9da1f-1ef7-461d-b4b2-fe8da199af1e",
+														"exec": [
+															"pm.test(\"Status code is 200\", function () {",
+															"    pm.response.to.have.status(200);",
+															"});",
+															"",
+															"let jsonData = pm.response.json();",
+															"",
+															"pm.test(`homeTransactionId is: ${pm.variables.get('homeTransactionId')}`, function () {",
+															"    pm.expect(jsonData.homeTransactionId).to.eql(pm.variables.get('homeTransactionId'));",
+															"});",
+															"",
+															"pm.test(`from.idType is BUSINESS`, function () {",
+															"    pm.expect(jsonData.from.idType).to.eql('BUSINESS');",
+															"});",
+															"",
+															"pm.test(`from.idValue is Starbucks`, function () {",
+															"    pm.expect(jsonData.from.idValue).to.eql('Starbucks');",
+															"});",
+															"",
+															"pm.test(`to.idType is MSISDN`, function () {",
+															"    pm.expect(jsonData.to.idType).to.eql('MSISDN');",
+															"});",
+															"",
+															"pm.test(`to.idValue is ${pm.environment.get('payerfspMSISDN')}`, function () {",
+															"    pm.expect(jsonData.to.idValue).to.eql(pm.environment.get('payerfspMSISDN'));",
+															"});",
+															"",
+															"pm.test(`to.fspId is payerfsp`, function () {",
+															"    pm.expect(jsonData.to.fspId).to.eql('payerfsp');",
+															"});",
+															"",
+															"pm.test(`amountType is SEND`, function () {",
+															"    pm.expect(jsonData.amountType).to.eql('SEND');",
+															"});",
+															"",
+															"pm.test(`currency is ${pm.environment.get('currency')}`, function () {",
+															"    pm.expect(jsonData.currency).to.eql(pm.environment.get('currency'));",
+															"});",
+															"",
+															"pm.test(`amount is 10`, function () {",
+															"    pm.expect(jsonData.amount).to.eql('10');",
+															"});",
+															"",
+															"pm.test(`scenario is PAYMENT`, function () {",
+															"    pm.expect(jsonData.scenario).to.eql('PAYMENT');",
+															"});",
+															"",
+															"pm.test(`initiator is PAYEE`, function () {",
+															"    pm.expect(jsonData.initiator).to.eql('PAYEE');",
+															"});",
+															"",
+															"pm.test(`initiatorType is DEVICE`, function () {",
+															"    pm.expect(jsonData.initiatorType).to.eql('DEVICE');",
+															"});",
+															"",
+															"pm.test(`transactionRequestId is not null`, function () {",
+															"    pm.expect(jsonData.transactionRequestId).to.not.equal('');",
+															"    pm.environment.set('transactionRequestId',jsonData.transactionRequestId);",
+															"});",
+															"",
+															"pm.test(`currentState is COMPLETED`, function () {",
+															"    pm.expect(jsonData.currentState).to.eql('COMPLETED');",
+															"});",
+															"",
+															"pm.test(`requestToPayState is RECEIVED`, function () {",
+															"    pm.expect(jsonData.requestToPayState).to.eql('RECEIVED');",
+															"});",
+															""
+														],
+														"type": "text/javascript"
+													}
+												},
+												{
+													"listen": "prerequest",
+													"script": {
+														"id": "d747e941-3ac1-45bd-bf66-a2271c44ad0e",
+														"exec": [
+															"",
+															"var uuid = require('uuid');",
+															"pm.variables.set('homeTransactionId',uuid.v4());"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n    \"homeTransactionId\": \"{{homeTransactionId}}\",\n    \"from\": {\n        \"idType\": \"BUSINESS\",\n        \"idValue\": \"Starbucks\",\n        \"displayName\": \"Starbucks Coffee\"\n    },\n    \"to\": {\n        \"idType\": \"MSISDN\",\n        \"idValue\": \"{{payerfspMSISDN}}\"\n    },\n    \"amountType\": \"SEND\",\n    \"currency\": \"{{currency}}\",\n    \"amount\": \"10\",\n    \"scenario\":\"PAYMENT\",\n    \"initiator\":\"PAYEE\",\n    \"initiatorType\":\"DEVICE\",\n    \"note\": \"test payment\"\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{PAYEEFSP_SDK_OUTBOUND_URL}}/requestToPay",
+													"host": [
+														"{{PAYEEFSP_SDK_OUTBOUND_URL}}"
+													],
+													"path": [
+														"requestToPay"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "peyerfsp - POST /merchantTransfers",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"id": "474356c0-b937-4591-b051-352f78d6bba0",
+														"exec": [
+															"pm.test(\"Status code is 200\", function () {",
+															"    pm.response.to.have.status(200);",
+															"});",
+															"",
+															"let jsonData = pm.response.json();",
+															"",
+															"pm.environment.set('transferId',jsonData.transferId);",
+															"",
+															"pm.test(`requestToPayTransactionId is: ${pm.variables.get('transactionRequestId')}`, function () {",
+															"    pm.expect(jsonData.requestToPayTransactionId).to.eql(pm.variables.get('transactionRequestId'));",
+															"});",
+															"",
+															"pm.test(`from.idType is MSISDN`, function () {",
+															"    pm.expect(jsonData.from.idType).to.eql('MSISDN');",
+															"});",
+															"",
+															"pm.test(`from.idValue is ${pm.environment.get('payerfspMSISDN')}`, function () {",
+															"    pm.expect(jsonData.from.idValue).to.eql(pm.environment.get('payerfspMSISDN'));",
+															"});",
+															"",
+															"pm.test(`to.idType is BISUNESS`, function () {",
+															"    pm.expect(jsonData.to.idType).to.eql('BUSINESS');",
+															"});",
+															"",
+															"pm.test(`to.idValue isStarbucks`, function () {",
+															"    pm.expect(jsonData.to.idValue).to.eql('Starbucks');",
+															"});",
+															"",
+															"pm.test(`to.fspId is payeefsp`, function () {",
+															"    pm.expect(jsonData.to.fspId).to.eql('payeefsp');",
+															"});",
+															"",
+															"pm.test(`amountType is SEND`, function () {",
+															"    pm.expect(jsonData.amountType).to.eql('SEND');",
+															"});",
+															"",
+															"pm.test(`currency is ${pm.environment.get('currency')}`, function () {",
+															"    pm.expect(jsonData.currency).to.eql(pm.environment.get('currency'));",
+															"});",
+															"",
+															"pm.test(`amount is 10`, function () {",
+															"    pm.expect(jsonData.amount).to.eql('10');",
+															"});",
+															"",
+															"pm.test(`scenario is PAYMENT`, function () {",
+															"    pm.expect(jsonData.scenario).to.eql('PAYMENT');",
+															"});",
+															"",
+															"pm.test(`initiator is PAYEE`, function () {",
+															"    pm.expect(jsonData.initiator).to.eql('PAYEE');",
+															"});",
+															"",
+															"pm.test(`initiatorType is DEVICE`, function () {",
+															"    pm.expect(jsonData.initiatorType).to.eql('DEVICE');",
+															"});",
+															"",
+															"pm.test(`currentState is WAITING_FOR_OTP_ACCEPTANCE`, function () {",
+															"    pm.expect(jsonData.currentState).to.eql('WAITING_FOR_OTP_ACCEPTANCE');",
+															"});",
+															"",
+															"pm.test(`quoteResponse is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.transferAmount.amount is 10`, function () {",
+															"    pm.expect(jsonData.quoteResponse.transferAmount.amount).to.eql('10');",
+															"});",
+															"",
+															"pm.test(`quoteResponse.transferAmount.currency is ${pm.environment.get('currency')}`, function () {",
+															"    pm.expect(jsonData.quoteResponse.transferAmount.currency).to.eql(pm.environment.get('currency'));",
+															"});",
+															"",
+															"pm.test(`quoteResponse.expiration is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.expiration).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.ilpPacket is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.ilpPacket).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.condition is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.condition).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.payeeFspFee is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.payeeFspFee).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.payeeFspCommission is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.payeeFspCommission).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`fulfil is undefined`, function () {",
+															"    pm.expect(jsonData.fulfil).to.eql(undefined);",
+															"});",
+															"",
+															"pm.test(`otpResponse is not null`, function () {",
+															"    pm.expect(jsonData.otpResponse).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`otpResponse.authenticationInfo.authentication is OTP`, function () {",
+															"    pm.expect(jsonData.otpResponse.authenticationInfo.authentication).to.eql('OTP');",
+															"});",
+															"",
+															"pm.test(`otpResponse.authenticationInfo.authenticationValue is not null`, function () {",
+															"    pm.expect(jsonData.otpResponse.authenticationInfo.authenticationValue).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`otpResponse.responseType is ENTERED`, function () {",
+															"    pm.expect(jsonData.otpResponse.responseType).to.eql('ENTERED');",
+															"});"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"requestToPayTransactionId\": \"{{transactionRequestId}}\",\n  \"from\": {\n    \"displayName\": \"CustomerName\",\n    \"idType\": \"MSISDN\",\n    \"idValue\": \"17855501914\"\n  },\n  \"to\": {\n    \"idType\": \"BUSINESS\",\n    \"idValue\": \"Starbucks\",\n    \"fspId\": \"payeefsp\"\n  },\n  \"amountType\": \"SEND\",\n  \"currency\": \"{{currency}}\",\n  \"amount\": \"10\",\n  \"scenario\":\"PAYMENT\",\n  \"initiator\":\"PAYEE\",\n  \"initiatorType\":\"DEVICE\",\n  \"note\": \"test payment\"\n}\n",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{PAYERFSP_SDK_OUTBOUND_URL}}/merchantTransfers",
+													"host": [
+														"{{PAYERFSP_SDK_OUTBOUND_URL}}"
+													],
+													"path": [
+														"merchantTransfers"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "payerfsp - PUT /merchantTransfers/{Id}",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"id": "ae69b50b-e7f6-46be-989c-85dcaeeb3c35",
+														"exec": [
+															"pm.test(\"Status code is 200\", function () {",
+															"    pm.response.to.have.status(200);",
+															"});",
+															"",
+															"let jsonData = pm.response.json();",
+															"",
+															"pm.environment.set('transferId',jsonData.transferId);",
+															"",
+															"pm.test(`requestToPayTransactionId is: ${pm.variables.get('transactionRequestId')}`, function () {",
+															"    pm.expect(jsonData.requestToPayTransactionId).to.eql(pm.variables.get('transactionRequestId'));",
+															"});",
+															"",
+															"pm.test(`from.idType is MSISDN`, function () {",
+															"    pm.expect(jsonData.from.idType).to.eql('MSISDN');",
+															"});",
+															"",
+															"pm.test(`from.idValue is ${pm.environment.get('payerfspMSISDN')}`, function () {",
+															"    pm.expect(jsonData.from.idValue).to.eql(pm.environment.get('payerfspMSISDN'));",
+															"});",
+															"",
+															"pm.test(`to.idType is BISUNESS`, function () {",
+															"    pm.expect(jsonData.to.idType).to.eql('BUSINESS');",
+															"});",
+															"",
+															"pm.test(`to.idValue isStarbucks`, function () {",
+															"    pm.expect(jsonData.to.idValue).to.eql('Starbucks');",
+															"});",
+															"",
+															"pm.test(`to.fspId is payeefsp`, function () {",
+															"    pm.expect(jsonData.to.fspId).to.eql('payeefsp');",
+															"});",
+															"",
+															"pm.test(`amountType is SEND`, function () {",
+															"    pm.expect(jsonData.amountType).to.eql('SEND');",
+															"});",
+															"",
+															"pm.test(`currency is ${pm.environment.get('currency')}`, function () {",
+															"    pm.expect(jsonData.currency).to.eql(pm.environment.get('currency'));",
+															"});",
+															"",
+															"pm.test(`amount is 10`, function () {",
+															"    pm.expect(jsonData.amount).to.eql('10');",
+															"});",
+															"",
+															"pm.test(`scenario is PAYMENT`, function () {",
+															"    pm.expect(jsonData.scenario).to.eql('PAYMENT');",
+															"});",
+															"",
+															"pm.test(`initiator is PAYEE`, function () {",
+															"    pm.expect(jsonData.initiator).to.eql('PAYEE');",
+															"});",
+															"",
+															"pm.test(`initiatorType is DEVICE`, function () {",
+															"    pm.expect(jsonData.initiatorType).to.eql('DEVICE');",
+															"});",
+															"",
+															"pm.test(`currentState is COMPLETED`, function () {",
+															"    pm.expect(jsonData.currentState).to.eql('COMPLETED');",
+															"});",
+															"",
+															"pm.test(`quoteResponse is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.transferAmount.amount is 10`, function () {",
+															"    pm.expect(jsonData.quoteResponse.transferAmount.amount).to.eql('10');",
+															"});",
+															"",
+															"pm.test(`quoteResponse.transferAmount.currency is ${pm.environment.get('currency')}`, function () {",
+															"    pm.expect(jsonData.quoteResponse.transferAmount.currency).to.eql(pm.environment.get('currency'));",
+															"});",
+															"",
+															"pm.test(`quoteResponse.expiration is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.expiration).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.ilpPacket is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.ilpPacket).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.condition is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.condition).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.payeeFspFee is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.payeeFspFee).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.payeeFspCommission is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.payeeFspCommission).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`otpResponse is not null`, function () {",
+															"    pm.expect(jsonData.otpResponse).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`otpResponse.authenticationInfo.authentication is OTP`, function () {",
+															"    pm.expect(jsonData.otpResponse.authenticationInfo.authentication).to.eql('OTP');",
+															"});",
+															"",
+															"pm.test(`otpResponse.authenticationInfo.authenticationValue is not null`, function () {",
+															"    pm.expect(jsonData.otpResponse.authenticationInfo.authenticationValue).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`otpResponse.responseType is ENTERED`, function () {",
+															"    pm.expect(jsonData.otpResponse.responseType).to.eql('ENTERED');",
+															"});",
+															"",
+															"pm.test(`fulfil is not null`, function () {",
+															"    pm.expect(jsonData.fulfil).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`fulfil.completedTimestamp is not null`, function () {",
+															"    pm.expect(jsonData.fulfil.completedTimestamp).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`fulfil.transferState is COMMITTED`, function () {",
+															"    pm.expect(jsonData.fulfil.transferState).to.eql('COMMITTED');",
+															"});",
+															"",
+															"pm.test(`fulfil.fulfilment is not null`, function () {",
+															"    pm.expect(jsonData.fulfil.fulfilment).to.not.equal(null);",
+															"});"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"acceptOTP\": true\n}\n",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{PAYERFSP_SDK_OUTBOUND_URL}}/merchantTransfers/{{transactionRequestId}}",
+													"host": [
+														"{{PAYERFSP_SDK_OUTBOUND_URL}}"
+													],
+													"path": [
+														"merchantTransfers",
+														"{{transactionRequestId}}"
+													]
+												}
+											},
+											"response": []
+										}
+									],
+									"protocolProfileBehavior": {},
+									"_postman_isSubFolder": true
+								},
+								{
+									"name": "accept OTP - false",
+									"item": [
+										{
+											"name": "payeefsp - POST /requestToPay",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"id": "6fb9da1f-1ef7-461d-b4b2-fe8da199af1e",
+														"exec": [
+															"pm.test(\"Status code is 200\", function () {",
+															"    pm.response.to.have.status(200);",
+															"});",
+															"",
+															"let jsonData = pm.response.json();",
+															"",
+															"pm.test(`homeTransactionId is: ${pm.variables.get('homeTransactionId')}`, function () {",
+															"    pm.expect(jsonData.homeTransactionId).to.eql(pm.variables.get('homeTransactionId'));",
+															"});",
+															"",
+															"pm.test(`from.idType is BUSINESS`, function () {",
+															"    pm.expect(jsonData.from.idType).to.eql('BUSINESS');",
+															"});",
+															"",
+															"pm.test(`from.idValue is Starbucks`, function () {",
+															"    pm.expect(jsonData.from.idValue).to.eql('Starbucks');",
+															"});",
+															"",
+															"pm.test(`to.idType is MSISDN`, function () {",
+															"    pm.expect(jsonData.to.idType).to.eql('MSISDN');",
+															"});",
+															"",
+															"pm.test(`to.idValue is ${pm.environment.get('payerfspMSISDN')}`, function () {",
+															"    pm.expect(jsonData.to.idValue).to.eql(pm.environment.get('payerfspMSISDN'));",
+															"});",
+															"",
+															"pm.test(`to.fspId is payerfsp`, function () {",
+															"    pm.expect(jsonData.to.fspId).to.eql('payerfsp');",
+															"});",
+															"",
+															"pm.test(`amountType is SEND`, function () {",
+															"    pm.expect(jsonData.amountType).to.eql('SEND');",
+															"});",
+															"",
+															"pm.test(`currency is ${pm.environment.get('currency')}`, function () {",
+															"    pm.expect(jsonData.currency).to.eql(pm.environment.get('currency'));",
+															"});",
+															"",
+															"pm.test(`amount is 10`, function () {",
+															"    pm.expect(jsonData.amount).to.eql('10');",
+															"});",
+															"",
+															"pm.test(`scenario is PAYMENT`, function () {",
+															"    pm.expect(jsonData.scenario).to.eql('PAYMENT');",
+															"});",
+															"",
+															"pm.test(`initiator is PAYEE`, function () {",
+															"    pm.expect(jsonData.initiator).to.eql('PAYEE');",
+															"});",
+															"",
+															"pm.test(`initiatorType is DEVICE`, function () {",
+															"    pm.expect(jsonData.initiatorType).to.eql('DEVICE');",
+															"});",
+															"",
+															"pm.test(`transactionRequestId is not null`, function () {",
+															"    pm.expect(jsonData.transactionRequestId).to.not.equal('');",
+															"    pm.environment.set('transactionRequestId',jsonData.transactionRequestId);",
+															"});",
+															"",
+															"pm.test(`currentState is COMPLETED`, function () {",
+															"    pm.expect(jsonData.currentState).to.eql('COMPLETED');",
+															"});",
+															"",
+															"pm.test(`requestToPayState is RECEIVED`, function () {",
+															"    pm.expect(jsonData.requestToPayState).to.eql('RECEIVED');",
+															"});",
+															""
+														],
+														"type": "text/javascript"
+													}
+												},
+												{
+													"listen": "prerequest",
+													"script": {
+														"id": "d747e941-3ac1-45bd-bf66-a2271c44ad0e",
+														"exec": [
+															"",
+															"var uuid = require('uuid');",
+															"pm.variables.set('homeTransactionId',uuid.v4());"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n    \"homeTransactionId\": \"{{homeTransactionId}}\",\n    \"from\": {\n        \"idType\": \"BUSINESS\",\n        \"idValue\": \"Starbucks\",\n        \"displayName\": \"Starbucks Coffee\"\n    },\n    \"to\": {\n        \"idType\": \"MSISDN\",\n        \"idValue\": \"{{payerfspMSISDN}}\"\n    },\n    \"amountType\": \"SEND\",\n    \"currency\": \"{{currency}}\",\n    \"amount\": \"10\",\n    \"scenario\":\"PAYMENT\",\n    \"initiator\":\"PAYEE\",\n    \"initiatorType\":\"DEVICE\",\n    \"note\": \"test payment\"\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{PAYEEFSP_SDK_OUTBOUND_URL}}/requestToPay",
+													"host": [
+														"{{PAYEEFSP_SDK_OUTBOUND_URL}}"
+													],
+													"path": [
+														"requestToPay"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "peyerfsp - POST /merchantTransfers",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"id": "474356c0-b937-4591-b051-352f78d6bba0",
+														"exec": [
+															"pm.test(\"Status code is 200\", function () {",
+															"    pm.response.to.have.status(200);",
+															"});",
+															"",
+															"let jsonData = pm.response.json();",
+															"",
+															"pm.environment.set('transferId',jsonData.transferId);",
+															"",
+															"pm.test(`requestToPayTransactionId is: ${pm.variables.get('transactionRequestId')}`, function () {",
+															"    pm.expect(jsonData.requestToPayTransactionId).to.eql(pm.variables.get('transactionRequestId'));",
+															"});",
+															"",
+															"pm.test(`from.idType is MSISDN`, function () {",
+															"    pm.expect(jsonData.from.idType).to.eql('MSISDN');",
+															"});",
+															"",
+															"pm.test(`from.idValue is ${pm.environment.get('payerfspMSISDN')}`, function () {",
+															"    pm.expect(jsonData.from.idValue).to.eql(pm.environment.get('payerfspMSISDN'));",
+															"});",
+															"",
+															"pm.test(`to.idType is BISUNESS`, function () {",
+															"    pm.expect(jsonData.to.idType).to.eql('BUSINESS');",
+															"});",
+															"",
+															"pm.test(`to.idValue isStarbucks`, function () {",
+															"    pm.expect(jsonData.to.idValue).to.eql('Starbucks');",
+															"});",
+															"",
+															"pm.test(`to.fspId is payeefsp`, function () {",
+															"    pm.expect(jsonData.to.fspId).to.eql('payeefsp');",
+															"});",
+															"",
+															"pm.test(`amountType is SEND`, function () {",
+															"    pm.expect(jsonData.amountType).to.eql('SEND');",
+															"});",
+															"",
+															"pm.test(`currency is ${pm.environment.get('currency')}`, function () {",
+															"    pm.expect(jsonData.currency).to.eql(pm.environment.get('currency'));",
+															"});",
+															"",
+															"pm.test(`amount is 10`, function () {",
+															"    pm.expect(jsonData.amount).to.eql('10');",
+															"});",
+															"",
+															"pm.test(`scenario is PAYMENT`, function () {",
+															"    pm.expect(jsonData.scenario).to.eql('PAYMENT');",
+															"});",
+															"",
+															"pm.test(`initiator is PAYEE`, function () {",
+															"    pm.expect(jsonData.initiator).to.eql('PAYEE');",
+															"});",
+															"",
+															"pm.test(`initiatorType is DEVICE`, function () {",
+															"    pm.expect(jsonData.initiatorType).to.eql('DEVICE');",
+															"});",
+															"",
+															"pm.test(`currentState is WAITING_FOR_OTP_ACCEPTANCE`, function () {",
+															"    pm.expect(jsonData.currentState).to.eql('WAITING_FOR_OTP_ACCEPTANCE');",
+															"});",
+															"",
+															"pm.test(`quoteResponse is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.transferAmount.amount is 10`, function () {",
+															"    pm.expect(jsonData.quoteResponse.transferAmount.amount).to.eql('10');",
+															"});",
+															"",
+															"pm.test(`quoteResponse.transferAmount.currency is ${pm.environment.get('currency')}`, function () {",
+															"    pm.expect(jsonData.quoteResponse.transferAmount.currency).to.eql(pm.environment.get('currency'));",
+															"});",
+															"",
+															"pm.test(`quoteResponse.expiration is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.expiration).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.ilpPacket is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.ilpPacket).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.condition is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.condition).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.payeeFspFee is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.payeeFspFee).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`quoteResponse.payeeFspCommission is not null`, function () {",
+															"    pm.expect(jsonData.quoteResponse.payeeFspCommission).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`fulfil is undefined`, function () {",
+															"    pm.expect(jsonData.fulfil).to.eql(undefined);",
+															"});",
+															"",
+															"pm.test(`otpResponse is not null`, function () {",
+															"    pm.expect(jsonData.otpResponse).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`otpResponse.authenticationInfo.authentication is OTP`, function () {",
+															"    pm.expect(jsonData.otpResponse.authenticationInfo.authentication).to.eql('OTP');",
+															"});",
+															"",
+															"pm.test(`otpResponse.authenticationInfo.authenticationValue is not null`, function () {",
+															"    pm.expect(jsonData.otpResponse.authenticationInfo.authenticationValue).to.not.equal(null);",
+															"});",
+															"",
+															"pm.test(`otpResponse.responseType is ENTERED`, function () {",
+															"    pm.expect(jsonData.otpResponse.responseType).to.eql('ENTERED');",
+															"});"
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"requestToPayTransactionId\": \"{{transactionRequestId}}\",\n  \"from\": {\n    \"displayName\": \"CustomerName\",\n    \"idType\": \"MSISDN\",\n    \"idValue\": \"17855501914\"\n  },\n  \"to\": {\n    \"idType\": \"BUSINESS\",\n    \"idValue\": \"Starbucks\",\n    \"fspId\": \"payeefsp\"\n  },\n  \"amountType\": \"SEND\",\n  \"currency\": \"{{currency}}\",\n  \"amount\": \"10\",\n  \"scenario\":\"PAYMENT\",\n  \"initiator\":\"PAYEE\",\n  \"initiatorType\":\"DEVICE\",\n  \"note\": \"test payment\"\n}\n",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{PAYERFSP_SDK_OUTBOUND_URL}}/merchantTransfers",
+													"host": [
+														"{{PAYERFSP_SDK_OUTBOUND_URL}}"
+													],
+													"path": [
+														"merchantTransfers"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "PUT /merchantTransfers/{Id} (OTP FALSE)",
+											"event": [
+												{
+													"listen": "test",
+													"script": {
+														"id": "ae69b50b-e7f6-46be-989c-85dcaeeb3c35",
+														"exec": [
+															"pm.test(\"Status code is 200\", function () {",
+															"    pm.response.to.have.status(200);",
+															"});",
+															"",
+															"setTimeout(function () {",
+															"  pm.sendRequest(pm.environment.get(\"PAYEEFSP_SDK_INBOUND_URL\")+\"/callbacks/\"+pm.variables.get(\"transactionRequestId\"), function (err, response) {",
+															"          if(response.responseSize !== 0) {",
+															"              ",
+															"              //Check the Headers",
+															"              var headers = response.json().headers;",
+															"              ",
+															"                pm.test(\"payeefsp fspiop-source is payerfsp\", function () {",
+															"                    pm.expect(headers['fspiop-source']).to.eql('payerfsp');",
+															"                });",
+															"                ",
+															"                pm.test(\"payeefsp fspiop-destination is payeefsp\", function () {",
+															"                    pm.expect(headers['fspiop-destination']).to.eql('payeefsp');",
+															"                });",
+															"                ",
+															"                ",
+															"                pm.test(\"payeefsp accept is empty\", function () {",
+															"                    pm.expect(headers['accept']).to.eql(undefined);",
+															"                });",
+															"                ",
+															"                pm.test(\"payeefsp content-typeis same as sent in the request\", function () {",
+															"                    pm.expect(headers['content-type']).to.eql('application/vnd.interoperability.authorizations+json;version=1.0');",
+															"                });",
+															"                ",
+															"                var jsonData = response.json().data;",
+															"                pm.test(\"responseType is REJECTED\", function () {",
+															"                    pm.expect(jsonData.responseType).to.eql('REJECTED');",
+															"                });",
+															"                ",
+															"          } else {",
+															"              pm.test(\"Authorizations FAILED\", function () {",
+															"                throw new Error('Did not receive callback on payee side');",
+															"              });",
+															"              // postman.setNextRequest(null)",
+															"          }",
+															"   });",
+															"}, 500)",
+															"",
+															""
+														],
+														"type": "text/javascript"
+													}
+												}
+											],
+											"request": {
+												"method": "PUT",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"acceptOTP\": false\n}\n",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{PAYERFSP_SDK_OUTBOUND_URL}}/merchantTransfers/{{transactionRequestId}}",
+													"host": [
+														"{{PAYERFSP_SDK_OUTBOUND_URL}}"
+													],
+													"path": [
+														"merchantTransfers",
+														"{{transactionRequestId}}"
+													]
+												}
+											},
+											"response": []
+										}
+									],
+									"protocolProfileBehavior": {},
+									"_postman_isSubFolder": true
+								}
+							],
+							"protocolProfileBehavior": {},
+							"_postman_isSubFolder": true
+						}
+					],
+					"protocolProfileBehavior": {},
+					"_postman_isSubFolder": true
+				}
+			],
+			"protocolProfileBehavior": {}
+		}
+	],
+	"protocolProfileBehavior": {}
+}

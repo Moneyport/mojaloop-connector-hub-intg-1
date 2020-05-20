@@ -1,0 +1,14 @@
+version: '3'
+services:
+ redis:
+   image: "redis:5.0.4-alpine"
+ payerfsp-scheme-adapter:
+   #image: "mojaloop/sdk-scheme-adapter:transactionRequest"
+   image: "mojaloop/sdk-scheme-adapter"
+   env_file: ./payerfsp_scheme_adapter.env
+   ports:
+     - "4000:4000"
+     - "4001:4001"
+   volumes:
+     - "../payerfsp/secrets:/secrets"
+     - "../payerfsp/jwsVerificationKeys:/jwsVerificationKeys"

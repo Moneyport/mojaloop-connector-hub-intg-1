@@ -2,49 +2,12 @@ version: '3'
 services:
  redis:
    image: "redis:5.0.4-alpine"
- payerfsp-simulator-ui:
-  image: "mojaloop/mojaloop-simulator-ui:v0.1.0"
-  tty: true
-  stdin_open: true
-  ports:
-    - "3080:8080"
-  restart: always
- payerfsp-backend:
-   image: "mojaloop/mojaloop-simulator:latest"
-   env_file: ./payerfsp_backend.env
-   ports:
-     - "3000:3000"
-     - "3002:3002"
-     - "3003:3003"
  payerfsp-scheme-adapter:
-   image: "mojaloop/sdk-scheme-adapter:latest"
-   env_file: ./payerfsp_scheme_adapter.env
+   image: "mojaloop/sdk-scheme-adapter"
+   env_file: ./scheme_adapter.env
    ports:
      - "4000:4000"
      - "4001:4001"
    volumes:
-     - "./payerfsp/secrets:/secrets"
-     - "./payerfsp/jwsVerificationKeys:/jwsVerificationKeys"
- payeefsp-scheme-adapter:
-   image: "mojaloop/sdk-scheme-adapter:latest"
-   env_file: ./payeefsp_scheme_adapter.env
-   ports:
-     - "5000:4000"
-     - "5001:4001"
-   volumes:
-     - "./payeefsp/secrets:/secrets"
-     - "./payeefsp/jwsVerificationKeys:/jwsVerificationKeys"
- payeefsp-backend:
-   image: "mojaloop/mojaloop-simulator:latest"
-   env_file: ./payeefsp_backend.env
-   ports:
-     - "6000:3000"
-     - "6002:3002"
-     - "6003:3003"
-#  payeefsp-simulator-ui:
-#     image: "mojaloop/mojaloop-simulator-ui:v0.1.0"
-#     tty: true
-#     stdin_open: true
-#     ports:
-#       - "6080:8080"
-#     restart: always
+     - "./secrets:/secrets"
+     - "./jwsVerificationKeys:/jwsVerificationKeys"
